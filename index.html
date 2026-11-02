@@ -206,7 +206,7 @@ dialog input{width:100%;height:40px;border:1px solid var(--border-strong);border
    Pipeline: Google Sheet -> Apps Script (Code.gs, pre-aggregated snapshot) -> JSON -> normalize -> state -> filters (parallel over base) -> KPIs -> UI
    كل الأرقام تُحسب من الحقائق المجمّعة (facts) القادمة من الشيت. لا توجد أي بيانات مدمجة هنا.
    ========================================================= */
-const API_URL = "";   // اختياري: ضع رابط الـ /exec هنا، أو استخدم زر «الإعدادات»
+const API_URL = "https://script.google.com/macros/s/AKfycbzAqeFkmbnQ5R8yhBNwON97jK5D_6benxipHSXL-Vgzc5n_eVcGil97ueGcd9MHDEKu/exec";   // رابط Apps Script Web App (/exec). يمكن تغييره من زر «الإعدادات»
 const LS = { url:'arrive_fleet_api_url', data:'arrive_fleet_last_data' };
 const NA = 'غير محدد بالمصدر';
 const $ = s => document.querySelector(s);
@@ -231,7 +231,7 @@ async function load(){
     let res; try{ res = await fetch(url, {cache:'no-store', signal:ctl.signal}); } finally { clearTimeout(t); }
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const txt = (await res.text()).replace(/^﻿/, '').trim();
-    let j; try{ j = JSON.parse(txt); } catch(e){ throw new Error('الاستجابة ليست JSON (غالبًا رابط غير صحيح أو صلاحية النشر ليست Anyone).'); }
+    let j; try{ j = JSON.parse(txt); } catch(e){ throw new Error('الاستجابة ليست JSON. بداية الاستجابة: «' + txt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) + '». غالبًا: صلاحية النشر ليست Anyone، أو النشر لا يحتوي doGet من Code.gs، أو نسخة نشر قديمة.'); }
     if(!j.ok) throw new Error(j.error || 'خطأ من الـ API');
     D = normalize(j.data); lsSet(LS.data, JSON.stringify(j.data)); render(); 
   }catch(err){
