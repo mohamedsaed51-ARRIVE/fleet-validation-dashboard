@@ -180,6 +180,39 @@ details.assume ul{margin:8px 0 0;padding-inline-start:20px}
 .state{display:grid;place-items:center;min-height:50vh;text-align:center;gap:10px;color:var(--text-secondary)}
 dialog{border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:20px;width:min(560px,92vw);font-family:inherit}
 dialog input{width:100%;height:40px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:0 8px;direction:ltr;font:inherit}
+
+/* ---- Report (A4، طباعة / حفظ PDF) ---- */
+.rp-overlay{position:fixed;inset:0;z-index:2000;background:var(--gray-100);overflow:auto;direction:rtl}
+.rp-overlay[hidden]{display:none}
+body.rp-open{overflow:hidden}
+.rp-bar{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;padding:10px var(--page-pad);background:var(--surface-card);border-bottom:1px solid var(--border-default)}
+.rp-bar b{flex:1}
+.rp-paper{width:210mm;max-width:100%;margin:20px auto 48px;background:#fff;color:var(--arrive-navy);padding:14mm;box-shadow:var(--shadow-raised);font-size:11.5px;line-height:1.55}
+.rp-paper .num{direction:ltr;unicode-bidi:isolate}
+.rp-head{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--arrive-blue);padding-bottom:10px;margin-bottom:12px}
+.rp-brand{background:var(--arrive-blue);color:#fff;font-weight:800;padding:4px 12px;border-radius:var(--radius-sm);letter-spacing:.5px;font-family:var(--font-latin)}
+.rp-head h1{margin:0;font-size:20px;flex:1}
+.rp-meta{display:grid;grid-template-columns:120px 1fr;gap:4px 12px;margin:0 0 14px;font-size:11.5px}
+.rp-meta dt{color:var(--text-secondary)}.rp-meta dd{margin:0;font-weight:600}
+.rp-paper h2{font-size:16px;margin:18px 0 8px;padding-inline-start:10px;border-inline-start:4px solid var(--arrive-teal)}
+.rp-paper h3{font-size:12.5px;margin:12px 0 5px;color:var(--arrive-blue)}
+.rp-paper .tbl{max-height:none;overflow:visible;border-radius:0}
+.rp-paper th{position:static;padding:5px 7px;font-size:10.5px}.rp-paper td{padding:4px 7px;font-size:10.5px}
+.rp-paper ul{margin:4px 0 8px;padding-inline-start:20px}.rp-paper li{margin:2px 0}
+.rp-tag{display:inline-block;font-size:10px;padding:0 6px;border-radius:var(--radius-pill);background:var(--status-under-action-bg);color:var(--status-under-action-fg);margin-inline-start:6px}
+.rp-note{font-size:10px;color:var(--text-secondary);margin:4px 0}
+.rp-foot{margin-top:18px;padding-top:6px;border-top:1px solid var(--border-default);font-size:10px;color:var(--text-secondary);display:flex;justify-content:space-between}
+@media print{
+  @page{size:A4;margin:12mm}
+  body>*:not(#rpOverlay){display:none!important}
+  .rp-overlay{position:static;overflow:visible;background:#fff}
+  .rp-bar{display:none}
+  .rp-paper{width:auto;margin:0;padding:0;box-shadow:none}
+  .rp-sec{break-before:page}.rp-sec:first-of-type{break-before:auto}
+  tr{break-inside:avoid}h2,h3{break-after:avoid}
+  th{background:var(--arrive-blue)!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tr.tot td,tr:nth-child(even) td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 @media(max-width:720px){:root{--page-pad:16px}.two{grid-template-columns:1fr}}
 </style>
 </head>
@@ -188,11 +221,22 @@ dialog input{width:100%;height:40px;border:1px solid var(--border-strong);border
   <h1>لوحة متابعة الـ Fleet Validation — مشاكل التسليم والإلغاءات ولم يتم التأكيد</h1>
   <small id="stamp"></small>
   <button class="btn" id="btnRefresh" type="button">تحديث</button>
+  <button class="btn" id="btnReport" type="button">إنشاء تقرير</button>
   <button class="btn" id="btnSettings" type="button">الإعدادات</button>
 </header>
 <nav class="tabs" id="tabs" role="tablist"></nav>
 <div class="filters" id="filters"></div>
 <main id="app"><div class="state"><div>جاري تحميل البيانات…</div></div></main>
+<dialog id="dlgRp"><form method="dialog">
+  <h3 style="margin-top:0">إنشاء تقرير</h3>
+  <p class="sub" style="color:var(--text-secondary)">التقرير يعتمد على الفلاتر المختارة حاليًا (الشهر / الفرع / الموظف).</p>
+  <label style="display:flex;flex-direction:column;gap:4px;font-size:12px">نوع التقرير<select id="rpType" style="width:100%"></select></label>
+  <p style="display:flex;gap:8px;margin-bottom:0"><button class="btn" id="rpGo" value="go">إنشاء</button><button class="btn" value="cancel">إلغاء</button></p>
+</form></dialog>
+<div class="rp-overlay" id="rpOverlay" hidden>
+  <div class="rp-bar"><b>معاينة التقرير</b><button class="btn" id="rpPrint" type="button">طباعة / حفظ PDF</button><button class="btn" id="rpClose" type="button">إغلاق</button></div>
+  <div class="rp-paper" id="rpPaper"></div>
+</div>
 <dialog id="dlg"><form method="dialog">
   <h3 style="margin-top:0">رابط الـ API (Apps Script Web App)</h3>
   <p class="sub" style="color:var(--text-secondary)">الصق رابط الـ Web App المنتهي بـ /exec ثم احفظ.</p>
@@ -445,6 +489,116 @@ function renderBody(){
   const dt = new Date(D.generatedAt); $('#stamp').textContent = isNaN(dt) ? '' : 'آخر تحديث للـ Snapshot: ' + dt.toLocaleString('ar-EG');
 }
 function render(){ renderTabs(); renderFilters(); renderBody(); }
+
+
+/* ---------- Reports: تُبنى من نفس دوال الحساب (flt / respStats / opsTables / outcomesBlock) ---------- */
+const RP_TYPES = [['all','التقرير الشامل'],['delivery','تقرير مشاكل التسليم'],['cancel','تقرير الإلغاءات'],['unc','تقرير لم يتم التأكيد']];
+const rateOf = o => (o.res + o.nor) ? o.res / (o.res + o.nor) : null;
+const fmtPct = v => v == null ? '—' : '<span class="num">' + (v * 100).toFixed(1) + '%</span>';
+const P = (a, b) => '<span class="num">' + pct(a, b) + '</span>';
+function rpPeriod(){
+  const ms = state.month ? D.months.filter(m => m.m === state.month) : D.months;
+  if(!ms.length) return NA;
+  const f = ms.map(m => m.from).sort()[0], t = ms.map(m => m.to).sort().slice(-1)[0];
+  return `${state.month || 'كل الشهور'} (${f} → ${t})`;
+}
+const rpKpis = list => table([{h:'المؤشر',k:'l'},{h:'القيمة',k:'v',n:1},{h:'ملاحظة / طريقة الحساب',k:'s'}], list.map(([l, v, s]) => ({ l, v, s })));
+function rpExtremes(list, what){
+  const L = list.filter(x => x.name !== NA && rateOf(x) != null && x.res + x.nor > 0);
+  if(L.length < 2) return '';
+  const hi = L.reduce((a, b) => rateOf(b) > rateOf(a) ? b : a), lo = L.reduce((a, b) => rateOf(b) < rateOf(a) ? b : a);
+  if(hi === lo) return '';
+  return `<li>${what}: أعلى نسبة رد <b>${esc(hi.name)}</b> (${fmtPct(rateOf(hi))} من ${N(hi.res + hi.nor)})، وأقل نسبة <b>${esc(lo.name)}</b> (${fmtPct(rateOf(lo))} من ${N(lo.res + lo.nor)}). الفروق بين الحجمين تؤثر على المقارنة.</li>`;
+}
+function rpOps(sec){
+  const isC = sec === 'cancel', name = isC ? 'الإلغاءات' : 'مشاكل التسليم', rows = flt(D.O.filter(r => r.sec === sec));
+  if(!rows.length) return { html:`<section class="rp-sec"><h2>${name}</h2><div class="empty">لا توجد بيانات للفلاتر المحددة</div></section>`, facts:[], todo:[] };
+  const T = opsTables(rows), days = activeDays(sec), uq = uniqueAwb(sec), S = T.S, fk = sumN(rows, r => r.fake);
+  const k = [['عدد ' + name, N(S.tot), 'سجلات متابعة (كل صف = متابعة)'], ['عدد البوالص المميزة', uq == null ? '—' : N(uq), uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار'],
+    ['المتوسط اليومي (avg)', avg1(S.tot, days), `إجمالي السجلات ÷ ${N(days)} يوم فيه شغل`], ['نسبة الرد', S.rate, `تم الرد ${N(S.res)} ÷ (تم الرد + لم يتم الرد = ${N(S.res + S.nor)})`],
+    ['جاهز للاستلام', N(S.ready), S.readyPct + ' من تم الرد']];
+  if(isC) k.push(['FAKE (افتراض A3)', N(fk), pct(fk, S.tot) + ' من الإلغاءات']);
+  let h = `<section class="rp-sec"><h2>${name}</h2><h3>المؤشرات</h3>${rpKpis(k)}<h3>أداء الموظفين</h3>${T.empHtml}<h3>أداء الفروع</h3>${T.brHtml}<h3>نتائج «تم الرد» لكل موظف (نوع الحل)</h3>${outcomesBlock(rows).html}`;
+  if(S.oth) h += `<p class="rp-note">${N(S.oth)} سجل بحالة نهائية غير «تم الرد/لم يتم الرد» — مُدرج في الإجمالي ومُستبعد من نسبة الرد.</p>`;
+  const facts = [`<li>بلغ عدد ${name} <b>${N(S.tot)}</b> سجل متابعة بمتوسط <b>${avg1(S.tot, days)}</b> يوميًا، ونسبة الرد <b><span class="num">${S.rate}</span></b> (تم الرد ${N(S.res)}، لم يتم الرد ${N(S.nor)}).</li>`,
+    rpExtremes(T.byEmp, 'الموظفون'), rpExtremes(T.byBr, 'الفروع')].filter(Boolean);
+  const todo = [];
+  if(isC){
+    const f = rows.filter(r => r.fake);
+    const byBr = [...group(f, r => r.br)].map(([b, rs]) => ({ br:b, n:sumN(rs), pc:pct(sumN(rs), sumN(rows.filter(r => r.br === b))) })).sort((a, b) => b.n - a.n);
+    const byCr = [...group(f, r => r.br + '||' + (r.cr || NA))].map(([key, rs]) => ({ br:rs[0].br, cr:rs[0].cr || NA, n:sumN(rs) })).sort((a, b) => b.n - a.n);
+    h += `<h3>FAKE في الإلغاءات حسب الفرع <span class="rp-tag">تعريف غير مؤكد A3</span></h3>${table([{h:'الفرع',k:'br'},{h:'FAKE',k:'n',n:1},{h:'% من إلغاءات الفرع',k:'pc',n:1}], byBr, { br:'الإجمالي', n:N(fk) })}` +
+         `<h3>FAKE حسب الفرع والمندوب (أعلى 30)</h3>${table([{h:'الفرع',k:'br'},{h:'المندوب',k:'cr'},{h:'FAKE',k:'n',n:1}], byCr.slice(0, 30))}`;
+    if(fk && byBr.length) { facts.push(`<li>عدد حالات FAKE (حسب التعريف المفترض A3): <b>${N(fk)}</b>؛ أعلى فرع <b>${esc(byBr[0].br)}</b> (${N(byBr[0].n)}).</li>`); todo.push(`مراجعة حالات FAKE في الإلغاءات (${N(fk)}) وتأكيد تعريف FAKE المعتمد قبل أي إجراء على فرع أو مندوب.`); }
+  }
+  return { html: h + '</section>', facts, todo };
+}
+function rpUnc(){
+  const rows = flt(D.U);
+  if(!rows.length) return { html:'<section class="rp-sec"><h2>لم يتم التأكيد</h2><div class="empty">لا توجد بيانات للفلاتر المحددة</div></section>', facts:[], todo:[] };
+  const tot = sumN(rows), days = activeDays('unc'), uq = uniqueAwb('unc');
+  const fake = sumN(rows, r => r.rev === 'FAKE'), grp = sumN(rows, r => r.rev === 'FAKE' && r.grp), tr = sumN(rows, r => r.rev === 'TRUE');
+  const k = [['عدد لم يتم التأكيد', N(tot), 'سجلات'], ['عدد البوالص المميزة', uq == null ? '—' : N(uq), uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار'], ['المتوسط اليومي (avg)', avg1(tot, days), `÷ ${N(days)} يوم فيه شغل`],
+    ['مراجعة TRUE', N(tr), pct(tr, tot)], ['مراجعة FAKE', N(fake), pct(fake, tot)], ['FAKE اتبلغ على الجروب', N(grp), `${pct(grp, fake)} من FAKE — لم يُبلَّغ: ${N(fake - grp)}`]];
+  const byST = [...group(rows, r => r.st)].map(([x, rs]) => ({ st:x, n:sumN(rs), p:pct(sumN(rs), tot), f:sumN(rs, r => r.rev === 'FAKE') })).sort((a, b) => b.n - a.n);
+  const byBr = [...group(rows, r => r.br)].map(([x, rs]) => { const t = sumN(rs), f = sumN(rs, r => r.rev === 'FAKE'); return { br:x, t, tr:sumN(rs, r => r.rev === 'TRUE'), f, fp:pct(f, t), g:sumN(rs, r => r.rev === 'FAKE' && r.grp), o:sumN(rs, r => r.rev !== 'TRUE' && r.rev !== 'FAKE') }; }).sort((a, b) => b.t - a.t);
+  const fk = rows.filter(r => r.rev === 'FAKE'), sts = uniqSorted(fk.map(r => r.st));
+  const mat = [...group(fk, r => r.br)].map(([x, rs]) => { const o = { br:x, t:sumN(rs) }; sts.forEach((st, i) => o['s' + i] = sumN(rs.filter(r => r.st === st))); return o; }).sort((a, b) => b.t - a.t);
+  const totRow = { br:'الإجمالي', t:N(fake) }; sts.forEach((st, i) => totRow['s' + i] = N(sumN(fk, r => r.st === st)));
+  const h = `<section class="rp-sec"><h2>لم يتم التأكيد</h2><h3>المؤشرات</h3>${rpKpis(k)}<h3>الحالات (حالة الشحنة بالسيستم)</h3>${table([{h:'الحالة',k:'st'},{h:'العدد',k:'n',n:1},{h:'%',k:'p',n:1},{h:'منها FAKE',k:'f',n:1}], byST, { st:'الإجمالي', n:N(tot), p:'100%', f:N(fake) })}` +
+    `<h3>نتيجة المراجعة لكل فرع</h3>${table([{h:'الفرع',k:'br'},{h:'الإجمالي',k:'t',n:1},{h:'TRUE',k:'tr',n:1},{h:'FAKE',k:'f',n:1},{h:'% FAKE',k:'fp',n:1},{h:'FAKE مُبلَّغ جروب',k:'g',n:1},{h:'أخرى/فارغ',k:'o',n:1}], byBr)}` +
+    `<h3>الـ FAKE: الفرع × الحالة</h3>${table([{h:'الفرع',k:'br'},{h:'إجمالي FAKE',k:'t',n:1}, ...sts.map((st, i) => ({ h:st, k:'s' + i, n:1 }))], mat, totRow)}</section>`;
+  const facts = [`<li>بلغ عدد «لم يتم التأكيد» <b>${N(tot)}</b> سجل بمتوسط <b>${avg1(tot, days)}</b> يوميًا؛ مراجعة TRUE ${N(tr)} (${P(tr, tot)})، وFAKE ${N(fake)} (${P(fake, tot)}).</li>`];
+  if(fake){ facts.push(`<li>من حالات FAKE (${N(fake)}): اتبلغ على الجروب <b>${N(grp)}</b> (${P(grp, fake)})، ولم يُبلَّغ <b>${N(fake - grp)}</b>.</li>`);
+    if(byBr.length) { const top = [...byBr].sort((a, b) => b.f - a.f)[0]; facts.push(`<li>أعلى فرع في عدد FAKE: <b>${esc(top.br)}</b> (${N(top.f)}، <span class="num">${top.fp}</span> من حالات الفرع).</li>`); }
+    if(byST.length) { const ts = [...byST].sort((a, b) => b.f - a.f)[0]; facts.push(`<li>أكثر حالة ظهورًا ضمن FAKE: <b>${esc(ts.st)}</b> (${N(ts.f)}).</li>`); } }
+  const todo = (fake - grp) > 0 ? [`متابعة حالات FAKE التي لم يُبلَّغ عنها على الجروب (${N(fake - grp)}).`] : [];
+  return { html:h, facts, todo };
+}
+function rpRounds(){
+  const R = D.rounds; if(!R) return '';
+  const ms = selMonths(), sel = R.byMonth.filter(x => ms.includes(x.m));
+  const cnt = [0, 1, 2, 3, 4].map(i => sel.reduce((a, x) => a + x.r[i], 0)), tot = cnt.reduce((a, b) => a + b, 0);
+  const rows = R.labels.map((l, i) => ({ l:`Round ${i + 1} (${l})`, n:N(cnt[i]), p:pct(cnt[i], tot) }));
+  return `<section class="rp-sec"><h2>الجولات (Rounds)</h2><p class="rp-note">المصدر: ورقة round. الفلاتر فرع/موظف لا تنطبق على هذه الأعداد. النسبة من مجموع الجولات الخمس للفترة.</p>${table([{h:'الجولة',k:'l'},{h:'عدد الشغل',k:'n',n:1},{h:'% من الإجمالي',k:'p',n:1}], rows, { l:'الإجمالي', n:N(tot), p:'100%' })}</section>`;
+}
+function rpAssumptions(){
+  const q = D.quality;
+  return `<section class="rp-sec"><h2>الافتراضات وجودة البيانات</h2><ul>` +
+   `<li><b>A1:</b> الإلغاءات = «تصنيف» يحتوي «الغاء»؛ مشاكل التسليم = يحتوي «تسليم». بدون تصنيف: ${N(q.ops.unclassified)}؛ تصنيفات أخرى مستبعدة: ${N(q.ops.otherClass)}.</li>` +
+   `<li><b>A2:</b> نسبة الرد = تم الرد ÷ (تم الرد + لم يتم الرد). حالات نهائية أخرى: ${N(q.ops.finalOther)}. «جاهز للاستلام» = «نوع الحل» يحتوي «جاهز للاستلام».</li>` +
+   `<li><b>A3:</b> FAKE في الإلغاءات = ظهور fake/فيك في نتيجة التحقيق أو نوع الحل أو الملاحظات أو حالة الشحنة (غير مؤكد).</li>` +
+   `<li><b>A4:</b> المتوسط اليومي = إجمالي السجلات ÷ الأيام المميزة الفعلية في الفترة. مع فلتر فرع/موظف يبقى المقسوم عليه أيام الفترة كلها.</li>` +
+   `<li><b>A5:</b> كل صف = متابعة واحدة. صفوف بلا تاريخ: ${N(q.ops.noDate)} (تسليم/إلغاء)، ${N(q.unc.noDate)} (لم يتم التأكيد). لم يتم التأكيد: مراجعة فارغة ${N(q.unc.reviewBlank)}، قيمة أخرى ${N(q.unc.reviewOther)}.</li>` +
+   `<li>عمود «حالة الشحنه النهائية 2» في المصدر #REF! ولا يُستخدم. عمود Round ${q.ops.roundFilled ? 'مُعبّأ في ' + N(q.ops.roundFilled) + ' سجل' : 'غير مُعبّأ'}.</li></ul></section>`;
+}
+function buildReport(type){
+  const parts = type === 'all' ? ['delivery', 'cancel', 'unc'] : [type];
+  const R = parts.map(t => t === 'unc' ? rpUnc() : rpOps(t));
+  const facts = R.flatMap(r => r.facts), todo = R.flatMap(r => r.todo);
+  const title = RP_TYPES.find(t => t[0] === type)[1];
+  const fl = [state.month && 'الشهر: ' + state.month, state.branch && 'الفرع: ' + state.branch, state.emp && 'الموظف: ' + state.emp].filter(Boolean).join(' — ') || 'بدون فلاتر';
+  const gen = new Date(D.generatedAt);
+  return `<div class="rp-head"><span class="rp-brand">ARRIVE</span><h1>${esc(title)} — Fleet Validation</h1></div>` +
+    `<dl class="rp-meta"><dt>الفترة</dt><dd>${esc(rpPeriod())}</dd><dt>نطاق التقرير</dt><dd>${esc(fl)}</dd><dt>مصدر البيانات</dt><dd>شيت «Validation Monthly Report - Fleet 8-9» — أوراق: مشاكل تسليم، لم يتم التاكيد، round</dd>` +
+    `<dt>آخر تحديث للبيانات</dt><dd class="num">${isNaN(gen) ? '—' : esc(gen.toLocaleString('en-GB'))}</dd><dt>تاريخ إنشاء التقرير</dt><dd class="num">${esc(new Date().toLocaleString('en-GB'))}</dd></dl>` +
+    `<section><h2>الملخص التنفيذي</h2><p class="rp-note">نتائج محسوبة من البيانات، وتعريفاتها الغير مؤكدة موضحة في آخر التقرير.</p><ul>${facts.join('') || '<li>لا توجد بيانات للفلاتر المحددة.</li>'}</ul>` +
+    (todo.length ? `<h3>نقاط مقترحة للمتابعة <span class="rp-tag">مقترح — يحتاج اعتماد الإدارة</span></h3><ul>${todo.map(t => `<li>${t}</li>`).join('')}</ul>` : '') + `</section>` +
+    R.map(r => r.html).join('') + (type === 'all' ? rpRounds() : '') + rpAssumptions() +
+    `<div class="rp-foot"><span>ARRIVE — إدارة التدقيق</span><span>${esc(title)}</span></div>`;
+}
+function openReport(type){
+  $('#rpPaper').innerHTML = buildReport(type); $('#rpOverlay').hidden = false; document.body.classList.add('rp-open');
+}
+$('#btnReport').onclick = () => {
+  if(!D){ return; }
+  const def = state.tab === 'overview' ? 'all' : state.tab;
+  $('#rpType').innerHTML = RP_TYPES.map(([k, l]) => `<option value="${k}" ${k === def ? 'selected' : ''}>${l}</option>`).join('');
+  $('#dlgRp').showModal();
+};
+$('#rpGo').onclick = () => { const t = $('#rpType').value; setTimeout(() => openReport(t), 0); };
+$('#rpClose').onclick = () => { $('#rpOverlay').hidden = true; document.body.classList.remove('rp-open'); };
+$('#rpPrint').onclick = () => window.print();
 
 /* ---------- Boot ---------- */
 $('#btnRefresh').onclick = load;
