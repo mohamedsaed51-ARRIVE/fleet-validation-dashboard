@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARRIVE | لوحة متابعة الـ Fleet Validation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* =====================================================================
+   ARRIVE — Design Tokens (single source of truth for Dashboard + Reports)
+   Source: ARRIVE Design System V2.0 / Project Knowledge V1.0 (tokens/*.css)
+   Change a colour HERE and the dashboard, charts and printed report follow.
+   ===================================================================== */
+:root{
+/* ---- Brand palette (official V2.0) ---- */
+--arrive-blue:#0837C9;
+--arrive-teal:#00C7E6;
+--arrive-navy:#0F172A;
+--arrive-light-blue:#E6F4FF;
+--arrive-white:#FFFFFF;
+--arrive-gray:#64748B;
+/* derived tints/shades (hover, press, lines only) */
+--arrive-blue-700:#062BA0;
+--arrive-blue-800:#05237F;
+--arrive-blue-900:#0A1E6B;
+--arrive-blue-50:#F2F8FF;
+--arrive-teal-600:#00A9C4;
+--arrive-teal-50:#E0F9FD;
+--gray-50:#F8FAFC;--gray-100:#F1F5F9;--gray-200:#E2E8F0;--gray-300:#CBD5E1;--gray-400:#94A3B8;--gray-500:#64748B;--gray-700:#334155;
+
+/* ---- Operational status (separate from brand; always tint + icon + text) ---- */
+--status-success:#22C55E;
+--status-in-progress:#3B82F6;
+--status-under-action:#F59E0B;
+--status-violation:#EF4444;   /* «مخالفة / حرجة» — one status */
+--status-closed:#64748B;
+--status-success-bg:#DCFCE7;--status-in-progress-bg:#DBEAFE;--status-under-action-bg:#FEF3C7;--status-violation-bg:#FEE2E2;--status-closed-bg:#F1F5F9;
+--status-success-fg:#15803D;--status-in-progress-fg:#1D4ED8;--status-under-action-fg:#B45309;
+--status-violation-fg:#B91C1C; /* text-on-tint for contrast only — never a status colour */
+--status-closed-fg:#475569;
+
+/* ---- Semantic aliases ---- */
+--text-primary:var(--arrive-navy);
+--text-secondary:var(--arrive-gray);
+--text-muted:var(--gray-400);
+--text-on-brand:#fff;
+--text-link:var(--arrive-blue);
+--surface-page:#F4F8FD;
+--surface-card:#fff;
+--surface-subtle:var(--arrive-light-blue);
+--border-default:var(--gray-200);
+--border-strong:var(--gray-300);
+--focus-ring:rgba(0,199,230,.45);
+--table-header-bg:var(--arrive-blue);
+--table-header-fg:#fff;
+
+/* ---- Typography ---- */
+--font-arabic:'Cairo',system-ui,sans-serif;
+--font-latin:'Inter',system-ui,sans-serif;
+--font-ui:'Cairo','Inter',system-ui,sans-serif;
+--font-numeric:'Inter','Cairo',system-ui,sans-serif;
+--font-mono:'JetBrains Mono',ui-monospace,monospace; /* implementation option for IDs only — not a brand font */
+--fw-regular:400;--fw-semibold:600;--fw-bold:700;--fw-black:800;
+--fs-kpi:34px;--fs-title:30px;--fs-section:20px;--fs-subtitle:16px;--fs-body:14px;--fs-small:13px;--fs-caption:12px;--fs-micro:11px;
+--lh-tight:1.2;--lh-snug:1.35;--lh-body:1.6;
+
+/* ---- Spacing / radius / shadow / motion ---- */
+--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;
+--radius-xs:4px;--radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:20px;--radius-pill:999px;
+--shadow-xs:0 1px 2px rgba(15,23,42,.06);
+--shadow-card:0 1px 3px rgba(15,23,42,.06),0 4px 14px rgba(8,55,201,.06);
+--shadow-raised:0 8px 24px rgba(15,23,42,.12);
+--shadow-focus:0 0 0 3px var(--focus-ring);
+--control-h-sm:32px;--control-h-md:40px;
+--dur-fast:120ms;--dur-base:200ms;--ease-standard:cubic-bezier(.2,0,0,1);
+--page-max:1440px;--page-pad:40px;
+
+/* ---- Chart series (brand first; status colours only when the series IS a status) ---- */
+--chart-1:var(--arrive-blue);--chart-2:var(--arrive-teal);--chart-3:var(--arrive-navy);--chart-4:var(--gray-400);--chart-5:var(--gray-300);
+--chart-grid:var(--gray-200);--chart-label:var(--text-secondary);--chart-bg:#fff;
+
+/* ---- Print scale (V2.0) ---- */
+--print-fs-title:30pt;--print-fs-section:18pt;--print-fs-subsection:14pt;--print-fs-body:11pt;--print-fs-table:10pt;--print-fs-caption:9pt;--print-fs-footer:8pt;
+
+/* =====================================================================
+   Legacy-name aliases: the dashboard's existing rules and JS still use
+   these names. They now resolve ONLY to ARRIVE tokens above.
+   ===================================================================== */
+--bg:var(--surface-page);
+--surface:var(--surface-card);
+--surface-alt:var(--gray-50);
+--ink:var(--arrive-navy);
+--ink-soft:var(--gray-700);
+--ink-faint:var(--gray-500);
+--line:var(--gray-200);
+--line-strong:var(--gray-300);
+--navy:var(--arrive-blue);          /* old mid-navy accent  → ARRIVE Blue */
+--navy-deep:var(--arrive-navy);
+--gold:var(--arrive-teal-600);      /* old gold accent      → ARRIVE Teal (accent) */
+--accepted:var(--status-success-fg);   --accepted-bg:var(--status-success-bg);
+--rejected:var(--status-violation);    --rejected-bg:var(--status-violation-bg);
+--pending:var(--status-under-action);  --pending-bg:var(--status-under-action-bg);
+--neutral:var(--status-closed);        --neutral-bg:var(--status-closed-bg);
+--rejected-fg:var(--status-violation-fg);
+--pending-fg:var(--status-under-action-fg);
+--neutral-fg:var(--status-closed-fg);
+--health-green:var(--status-success);   /* ممتاز */
+--health-yellow:var(--status-in-progress); /* جيد */
+--health-orange:var(--status-under-action);/* يحتاج انتباه */
+--health-red:var(--status-violation);   /* حرج */
+--shadow:var(--shadow-card);
+}
+
+/* ---- Dark theme (existing feature kept). NOTE: the official V2.0 system defines no dark mode;
+   these values are derived from Navy/Blue only and are flagged as a design-system gap. ---- */
+:root[data-theme="dark"]{
+--surface-page:#0A1020;
+--surface-card:#111A31;
+--surface-alt:#16213D;
+--text-primary:#E8EEF9;
+--ink:#E8EEF9;
+--ink-soft:#B6C2DA;
+--ink-faint:#8D9BB8;
+--line:#22304F;
+--line-strong:#2E3F66;
+--border-default:#22304F;
+--border-strong:#2E3F66;
+--navy:#6E94FF;           /* accent on dark: lightened ARRIVE Blue */
+--navy-deep:#F2F6FF;
+--gold:var(--arrive-teal);
+--accepted:#4ADE80;--rejected-fg:#FCA5A5;--pending-fg:#FCD34D;--neutral-fg:#CBD5E1;
+--accepted-bg:rgba(34,197,94,.16);--rejected-bg:rgba(239,68,68,.16);--pending-bg:rgba(245,158,11,.16);--neutral-bg:rgba(148,163,184,.16);
+--status-success-bg:rgba(34,197,94,.16);--status-in-progress-bg:rgba(59,130,246,.18);--status-under-action-bg:rgba(245,158,11,.16);--status-violation-bg:rgba(239,68,68,.16);--status-closed-bg:rgba(148,163,184,.16);
+--status-success-fg:#4ADE80;--status-in-progress-fg:#93C5FD;--status-under-action-fg:#FCD34D;--status-violation-fg:#FCA5A5;--status-closed-fg:#CBD5E1;
+--shadow-card:0 1px 3px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.35);
+--chart-grid:#22304F;--chart-label:#B6C2DA;
+}
+
+/* ---- Layout (يستخدم نفس توكنز ARRIVE أعلاه) ---- */
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-page);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--fs-body);line-height:var(--lh-body)}
+.num{font-family:var(--font-numeric);direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+header.top{background:var(--arrive-blue);color:#fff;padding:14px var(--page-pad);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header.top h1{margin:0;font-size:20px;font-weight:800;flex:1;min-width:220px}
+header.top small{opacity:.85;font-size:var(--fs-caption)}
+.btn{font:inherit;border:1px solid var(--border-strong);background:var(--surface-card);color:var(--text-primary);border-radius:var(--radius-sm);padding:0 12px;height:var(--control-h-sm);cursor:pointer}
+.btn:hover{border-color:var(--arrive-blue)} .btn:focus-visible,select:focus-visible,.tab:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+header.top .btn{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.35);color:#fff}
+nav.tabs{display:flex;gap:4px;padding:0 var(--page-pad);background:var(--surface-card);border-bottom:1px solid var(--border-default);overflow-x:auto}
+.tab{font:inherit;font-weight:700;background:none;border:0;border-bottom:3px solid transparent;padding:12px 16px;cursor:pointer;color:var(--text-secondary);white-space:nowrap}
+.tab.on{color:var(--arrive-blue);border-bottom-color:var(--arrive-blue)}
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;padding:14px var(--page-pad);max-width:var(--page-max);margin:0 auto}
+.filters label{display:flex;flex-direction:column;font-size:var(--fs-caption);color:var(--text-secondary);gap:4px}
+select{font:inherit;height:var(--control-h-md);min-width:170px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface-card);color:var(--text-primary);padding:0 8px}
+main{max-width:var(--page-max);margin:0 auto;padding:0 var(--page-pad) 48px}
+.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:16px}
+.two{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
+.card{background:var(--surface-card);border:1px solid var(--border-default);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px;min-width:0}
+.card h3{margin:0 0 4px;font-size:var(--fs-subtitle)} .card .sub{color:var(--text-secondary);font-size:var(--fs-caption);margin-bottom:10px}
+.kpi .v{font-size:var(--fs-kpi);font-weight:800;color:var(--arrive-blue);line-height:1.1;margin:6px 0 2px}.kpi .l{font-weight:700}.kpi .s{font-size:var(--fs-caption);color:var(--text-secondary)}
+.kpi.bad .v{color:var(--status-violation-fg)}
+.sec-title{font-size:var(--fs-section);font-weight:800;margin:24px 0 12px}
+.tbl{overflow:auto;max-height:480px;border:1px solid var(--border-default);border-radius:var(--radius-md)}
+table{border-collapse:collapse;width:100%;font-size:var(--fs-small)}
+th{background:var(--table-header-bg);color:var(--table-header-fg);text-align:start;padding:8px 10px;position:sticky;top:0;white-space:nowrap}
+td{padding:7px 10px;border-top:1px solid var(--border-default)} tr:nth-child(even) td{background:var(--surface-alt)}
+td.n,th.n{text-align:end} tr.tot td{font-weight:800;background:var(--arrive-light-blue)}
+.chartbox{position:relative;height:320px}
+.pill{display:inline-block;padding:1px 8px;border-radius:var(--radius-pill);font-size:var(--fs-caption);font-weight:700}
+.p-ok{background:var(--status-success-bg);color:var(--status-success-fg)}.p-mid{background:var(--status-under-action-bg);color:var(--status-under-action-fg)}.p-bad{background:var(--status-violation-bg);color:var(--status-violation-fg)}
+.notice{border-radius:var(--radius-md);padding:10px 14px;margin:0 0 14px;font-size:var(--fs-small);border:1px solid var(--border-default);background:var(--surface-card)}
+.notice.warn{background:var(--status-under-action-bg);color:var(--status-under-action-fg);border-color:transparent}
+.notice.err{background:var(--status-violation-bg);color:var(--status-violation-fg);border-color:transparent}
+details.assume summary{cursor:pointer;font-weight:700}
+details.assume ul{margin:8px 0 0;padding-inline-start:20px}
+.empty{color:var(--text-secondary);padding:24px;text-align:center}
+.state{display:grid;place-items:center;min-height:50vh;text-align:center;gap:10px;color:var(--text-secondary)}
+dialog{border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:20px;width:min(560px,92vw);font-family:inherit}
+dialog input{width:100%;height:40px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:0 8px;direction:ltr;font:inherit}
+@media(max-width:720px){:root{--page-pad:16px}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>لوحة متابعة الـ Fleet Validation — مشاكل التسليم والإلغاءات ولم يتم التأكيد</h1>
+  <small id="stamp"></small>
+  <button class="btn" id="btnRefresh" type="button">تحديث</button>
+  <button class="btn" id="btnSettings" type="button">الإعدادات</button>
+</header>
+<nav class="tabs" id="tabs" role="tablist"></nav>
+<div class="filters" id="filters"></div>
+<main id="app"><div class="state"><div>جاري تحميل البيانات…</div></div></main>
+<dialog id="dlg"><form method="dialog">
+  <h3 style="margin-top:0">رابط الـ API (Apps Script Web App)</h3>
+  <p class="sub" style="color:var(--text-secondary)">الصق رابط الـ Web App المنتهي بـ /exec ثم احفظ.</p>
+  <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+  <p style="display:flex;gap:8px;margin-bottom:0"><button class="btn" id="saveUrl" value="save">حفظ وتحميل</button><button class="btn" value="cancel">إغلاق</button></p>
+</form></dialog>
+<script>
+"use strict";
+/* =========================================================
+   ARRIVE Fleet Validation Dashboard
+   Pipeline: Google Sheet -> Apps Script (Code.gs, pre-aggregated snapshot) -> JSON -> normalize -> state -> filters (parallel over base) -> KPIs -> UI
+   كل الأرقام تُحسب من الحقائق المجمّعة (facts) القادمة من الشيت. لا توجد أي بيانات مدمجة هنا.
+   ========================================================= */
+const API_URL = "";   // اختياري: ضع رابط الـ /exec هنا، أو استخدم زر «الإعدادات»
+const LS = { url:'arrive_fleet_api_url', data:'arrive_fleet_last_data' };
+const NA = 'غير محدد بالمصدر';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const N = n => Number(n || 0).toLocaleString('en-US');
+const pct = (a, b) => b > 0 ? (a / b * 100).toFixed(1) + '%' : '—';
+const avg1 = (a, b) => b > 0 ? (a / b).toLocaleString('en-US', {maximumFractionDigits:1}) : '—';
+const lsGet = k => { try { return localStorage.getItem(k) } catch(e) { return null } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v) } catch(e) {} };
+
+let D = null;                       // normalized snapshot
+const state = { tab:'overview', month:'', branch:'', emp:'' };
+let charts = [];
+
+/* ---------- Load ---------- */
+function apiUrl(){ return (lsGet(LS.url) || API_URL || '').trim(); }
+async function load(){
+  const url = apiUrl();
+  if(!url){ showState('أدخل رابط الـ API من زر «الإعدادات» لبدء عرض البيانات.', true); return; }
+  try{
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 120000);
+    let res; try{ res = await fetch(url, {cache:'no-store', signal:ctl.signal}); } finally { clearTimeout(t); }
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const txt = (await res.text()).replace(/^﻿/, '').trim();
+    let j; try{ j = JSON.parse(txt); } catch(e){ throw new Error('الاستجابة ليست JSON (غالبًا رابط غير صحيح أو صلاحية النشر ليست Anyone).'); }
+    if(!j.ok) throw new Error(j.error || 'خطأ من الـ API');
+    D = normalize(j.data); lsSet(LS.data, JSON.stringify(j.data)); render(); 
+  }catch(err){
+    const cached = lsGet(LS.data);
+    if(cached){ try{ D = normalize(JSON.parse(cached)); render(); banner('تعذّر التحديث (' + esc(err.message) + ') — يتم عرض آخر بيانات محفوظة.', 'warn'); return; }catch(e){} }
+    showState('تعذّر تحميل البيانات: ' + err.message, true);
+  }
+}
+function normalize(d){
+  if(!d || !Array.isArray(d.ops) || !Array.isArray(d.unc)) throw new Error('شكل JSON غير متوقع');
+  const toObj = (cols, rows) => rows.map(a => Object.fromEntries(cols.map((k, i) => [k, a[i]])));
+  d.O = toObj(d.opsCols, d.ops); d.U = toObj(d.uncCols, d.unc);
+  return d;
+}
+function showState(msg, retry){
+  destroyCharts(); $('#filters').innerHTML = ''; $('#tabs').innerHTML = '';
+  $('#app').innerHTML = `<div class="state"><div>${esc(msg)}</div>${retry ? '<div><button class="btn" id="retry" type="button">إعادة المحاولة</button></div>' : ''}</div>`;
+  const r = $('#retry'); if(r) r.onclick = load;
+}
+function banner(html, cls){ $('#app').insertAdjacentHTML('afterbegin', `<div class="notice ${cls||''}">${html}</div>`); }
+
+/* ---------- Filters (parallel over a stable base) ---------- */
+const flt = rows => rows.filter(r => (!state.month || r.m === state.month) && (!state.branch || r.br === state.branch) && (!state.emp || r.emp === state.emp));
+function baseRows(){
+  if(state.tab === 'unc') return D.U;
+  if(state.tab === 'delivery' || state.tab === 'cancel') return D.O.filter(r => r.sec === state.tab);
+  return D.O.concat(D.U);
+}
+const uniqSorted = a => [...new Set(a)].sort((x, y) => x.localeCompare(y, 'ar'));
+function renderFilters(){
+  const base = baseRows();
+  const branches = uniqSorted(base.map(r => r.br)), emps = uniqSorted(base.map(r => r.emp));
+  if(state.branch && !branches.includes(state.branch)) state.branch = '';
+  if(state.emp && !emps.includes(state.emp)) state.emp = '';
+  const opt = (v, cur, label) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(label ?? v)}</option>`;
+  $('#filters').innerHTML =
+    `<label>الشهر<select id="fMonth">${opt('', state.month, 'الكل')}${D.months.map(m => opt(m.m, state.month, `${m.m} (${m.from} → ${m.to})`)).join('')}</select></label>` +
+    `<label>الفرع<select id="fBranch">${opt('', state.branch, 'الكل')}${branches.map(b => opt(b, state.branch)).join('')}</select></label>` +
+    `<label>الموظف<select id="fEmp">${opt('', state.emp, 'الكل')}${emps.map(b => opt(b, state.emp)).join('')}</select></label>` +
+    `<button class="btn" id="fReset" type="button" style="height:40px">مسح الفلاتر</button>`;
+  $('#fMonth').onchange = e => { state.month = e.target.value; renderBody(); };
+  $('#fBranch').onchange = e => { state.branch = e.target.value; renderBody(); };
+  $('#fEmp').onchange = e => { state.emp = e.target.value; renderBody(); };
+  $('#fReset').onclick = () => { state.month = state.branch = state.emp = ''; render(); };
+}
+
+/* ---------- Helpers ---------- */
+const TABS = [['overview','نظرة عامة والجولات'],['delivery','مشاكل التسليم'],['cancel','الإلغاءات'],['unc','لم يتم التأكيد']];
+function renderTabs(){
+  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" class="tab ${state.tab === k ? 'on' : ''}" data-t="${k}" type="button">${l}</button>`).join('');
+  document.querySelectorAll('.tab').forEach(b => b.onclick = () => { state.tab = b.dataset.t; render(); });
+}
+function destroyCharts(){ charts.forEach(c => c.destroy()); charts = []; }
+// Chart.js لا يفهم var(--x): نحلّ اللون الفعلي عبر عنصر مؤقت
+function cssColor(v){ const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }
+function palette(){ return [cssColor('var(--chart-1)'), cssColor('var(--chart-2)'), cssColor('var(--chart-3)'), '#7C9CF5', '#F59E0B', '#22C55E', '#8B5CF6', cssColor('var(--chart-4)'), '#EF4444']; }
+function chart(id, labels, sets, o = {}){
+  const el = document.getElementById(id); if(!el || typeof Chart === 'undefined') return;
+  const pal = palette(), lblC = cssColor('var(--chart-label)'), gridC = cssColor('var(--chart-grid)');
+  const c = new Chart(el, { type:'bar',
+    data:{ labels, datasets: sets.map((s, i) => ({ backgroundColor: pal[i % pal.length], borderRadius:3, ...s })) },
+    options:{ indexAxis:o.horizontal ? 'y' : 'x', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:sets.length > 1, position:'bottom', labels:{ font:{family:'Cairo'}, color:lblC } },
+        tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label ? ctx.dataset.label + ': ' : ''}${Number(ctx.parsed[o.horizontal ? 'x' : 'y']).toLocaleString('en-US')}${o.suffix || ''}` } } },
+      scales:{ x:{ stacked:!!o.stacked, grid:{display:false}, ticks:{font:{family:'Cairo'}, color:lblC}, max:o.max },
+               y:{ stacked:!!o.stacked, beginAtZero:true, grid:{color:gridC}, ticks:{font:{family:'Cairo'}, color:lblC}, max: o.horizontal ? undefined : o.max } } } });
+  charts.push(c);
+}
+function table(cols, rows, totalRow){
+  if(!rows.length) return '<div class="empty">لا توجد بيانات للفلاتر المحددة</div>';
+  const th = cols.map(c => `<th class="${c.n ? 'n' : ''}">${esc(c.h)}</th>`).join('');
+  const tr = r => `<tr>${cols.map(c => `<td class="${c.n ? 'n num' : ''}">${c.raw ? r[c.k] : esc(r[c.k])}</td>`).join('')}</tr>`;
+  return `<div class="tbl"><table><thead><tr>${th}</tr></thead><tbody>${rows.map(tr).join('')}${totalRow ? `<tr class="tot">${cols.map(c => `<td class="${c.n ? 'n num' : ''}">${esc(totalRow[c.k] ?? '')}</td>`).join('')}</tr>` : ''}</tbody></table></div>`;
+}
+const kpi = (l, v, s, bad) => `<div class="card kpi ${bad ? 'bad' : ''}"><div class="l">${esc(l)}</div><div class="v num">${esc(v)}</div><div class="s">${esc(s || '')}</div></div>`;
+const card = (t, sub, inner) => `<div class="card"><h3>${esc(t)}</h3><div class="sub">${esc(sub || '')}</div>${inner}</div>`;
+const selMonths = () => state.month ? [state.month] : D.months.map(m => m.m);
+const activeDays = key => selMonths().reduce((a, m) => a + (D.days[key === 'unc' ? 'unc' : 'ops'][key === 'unc' ? m : key + '|' + m] || 0), 0);
+const uniqueAwb = key => (state.branch || state.emp) ? null : selMonths().reduce((a, m) => a + (D.uniq[key === 'unc' ? 'unc' : 'ops'][key === 'unc' ? m : key + '|' + m] || 0), 0);
+const sumN = (rows, f) => rows.reduce((a, r) => a + (f ? (f(r) ? r.n : 0) : r.n), 0);
+function group(rows, keyFn){ const g = new Map(); rows.forEach(r => { const k = keyFn(r); (g.get(k) || g.set(k, []).get(k)).push(r); }); return g; }
+
+/* ---------- Ops (delivery / cancel) ---------- */
+function respStats(rows){
+  const res = sumN(rows, r => r.fin === 'responded'), nor = sumN(rows, r => r.fin === 'noresp');
+  return { tot: sumN(rows), res, nor, oth: sumN(rows) - res - nor, ready: sumN(rows, r => r.fin === 'responded' && r.ready), rate: pct(res, res + nor), readyPct: pct(sumN(rows, r => r.fin === 'responded' && r.ready), res) };
+}
+function opsTables(rows){
+  const secTotal = sumN(rows);
+  const byEmp = [...group(rows, r => r.emp)].map(([k, rs]) => ({ name:k, ...respStats(rs) })).sort((a, b) => b.tot - a.tot);
+  const byBr  = [...group(rows, r => r.br)].map(([k, rs]) => ({ name:k, share:pct(sumN(rs), secTotal), ...respStats(rs) })).sort((a, b) => b.tot - a.tot);
+  const S = respStats(rows);
+  const colsE = [{h:'الموظف',k:'name'},{h:'الإجمالي',k:'tot',n:1},{h:'تم الرد',k:'res',n:1},{h:'لم يتم الرد',k:'nor',n:1},{h:'نسبة الرد',k:'rate',n:1},{h:'جاهز للاستلام',k:'ready',n:1},{h:'% جاهز من تم الرد',k:'readyPct',n:1}];
+  const tot = o => ({ name:'الإجمالي', ...o });
+  return { byEmp, byBr, S, colsE,
+    empHtml: table(colsE, byEmp, tot(S)),
+    brHtml: table([{h:'الفرع',k:'name'},{h:'الإجمالي',k:'tot',n:1},{h:'% من الإجمالي',k:'share',n:1},{h:'تم الرد',k:'res',n:1},{h:'نسبة الرد',k:'rate',n:1},{h:'جاهز للاستلام',k:'ready',n:1},{h:'% جاهز من تم الرد',k:'readyPct',n:1}], byBr, tot({ ...S, share:'100%' })) };
+}
+function outcomesBlock(rows, idPrefix){
+  const resp = rows.filter(r => r.fin === 'responded');
+  const types = [...group(resp, r => r.sol || NA)].map(([k, rs]) => [k, sumN(rs)]).sort((a, b) => b[1] - a[1]);
+  const top = types.slice(0, 8).map(t => t[0]);
+  const bucket = s => top.includes(s || NA) ? (s || NA) : 'أخرى';
+  const empNames = uniqSorted(resp.map(r => r.emp));
+  const cell = (e, t) => sumN(resp.filter(r => r.emp === e && bucket(r.sol) === t));
+  const cols = [...top, ...(types.length > top.length ? ['أخرى'] : [])];
+  const rowsT = empNames.map(e => { const tot = sumN(resp.filter(r => r.emp === e)); const o = { name:e, tot }; cols.forEach((t, i) => { const c = cell(e, t); o['c' + i] = `${N(c)} (${pct(c, tot)})`; }); return o; });
+  const html = table([{h:'الموظف',k:'name'},{h:'إجمالي تم الرد',k:'tot',n:1}, ...cols.map((t, i) => ({h:t, k:'c' + i, n:1}))], rowsT);
+  return { html, cols, empNames, cell };
+}
+function renderOps(sec){
+  const rows = flt(D.O.filter(r => r.sec === sec)), isC = sec === 'cancel', name = isC ? 'الإلغاءات' : 'مشاكل التسليم';
+  if(!rows.length) return `<div class="empty">لا توجد بيانات ${name} للفلاتر المحددة</div>`;
+  const T = opsTables(rows), days = activeDays(sec), uq = uniqueAwb(sec);
+  let h = `<div class="grid kpis">` +
+    kpi('عدد ' + name, N(T.S.tot), 'سجلات متابعة (كل صف = متابعة)') +
+    kpi('عدد البوالص المميزة', uq == null ? '—' : N(uq), uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار') +
+    kpi('المتوسط اليومي (avg)', avg1(T.S.tot, days), `÷ ${N(days)} يوم فيه شغل`) +
+    kpi('نسبة الرد', T.S.rate, `تم الرد ${N(T.S.res)} من ${N(T.S.res + T.S.nor)} (تم الرد + لم يتم الرد)`) +
+    kpi('جاهز للاستلام', N(T.S.ready), T.S.readyPct + ' من تم الرد') +
+    (isC ? kpi('FAKE (افتراض A3)', N(sumN(rows, r => r.fake)), pct(sumN(rows, r => r.fake), T.S.tot) + ' من الإلغاءات', true) : '') + `</div>`;
+  if(T.S.oth) h += `<div class="notice warn">يوجد ${N(T.S.oth)} سجل بحالة نهائية غير «تم الرد/لم يتم الرد» — مُستبعد من نسبة الرد ومُدرج في الإجمالي فقط.</div>`;
+  h += `<div class="grid two">${card('نسبة الرد لكل موظف', `من إجمالي ${name} (تم الرد ÷ (تم الرد + لم يتم الرد))`, '<div class="chartbox"><canvas id="cEmp"></canvas></div>')}` +
+       card('الإجمالي حسب الفرع', 'عدد ونسبة كل فرع من إجمالي ' + name, '<div class="chartbox"><canvas id="cBr"></canvas></div>') + `</div>`;
+  h += `<div class="sec-title">أداء الموظفين</div>${T.empHtml}<div class="sec-title">أداء الفروع</div>${T.brHtml}`;
+  const O = outcomesBlock(rows);
+  h += `<div class="sec-title">نتائج «تم الرد» لكل موظف (نوع الحل)</div><div class="card"><div class="chartbox"><canvas id="cOut"></canvas></div></div><div style="height:12px"></div>${O.html}`;
+  if(isC){
+    const fk = rows.filter(r => r.fake);
+    const byBr = [...group(fk, r => r.br)].map(([k, rs]) => ({ br:k, n:sumN(rs), pc:pct(sumN(rs), sumN(rows.filter(r => r.br === k))) })).sort((a, b) => b.n - a.n);
+    const byCr = [...group(fk, r => r.br + '||' + (r.cr || NA))].map(([k, rs]) => ({ br:rs[0].br, cr:rs[0].cr || NA, n:sumN(rs) })).sort((a, b) => b.n - a.n);
+    h += `<div class="sec-title">الـ FAKE في الإلغاءات — الفرع والمندوب</div>` +
+      `<div class="notice warn">تعريف FAKE هنا افتراض غير مؤكد (A3): ظهور كلمة fake/فيك في (نتيجة التحقيق / نوع الحل / ملاحظات / حالة الشحنة). راجعه مع المصدر.</div>` +
+      `<div class="grid two">${card('FAKE حسب الفرع', '', table([{h:'الفرع',k:'br'},{h:'FAKE',k:'n',n:1},{h:'% من إلغاءات الفرع',k:'pc',n:1}], byBr, { br:'الإجمالي', n:N(sumN(fk)) }))}` +
+      `${card('FAKE حسب الفرع والمندوب', 'أعلى 100', table([{h:'الفرع',k:'br'},{h:'المندوب',k:'cr'},{h:'FAKE',k:'n',n:1}], byCr.slice(0, 100)))}</div>`;
+  }
+  setTimeout(() => {
+    chart('cEmp', T.byEmp.map(e => e.name), [{ label:'نسبة الرد %', data:T.byEmp.map(e => (e.res + e.nor) ? +(e.res / (e.res + e.nor) * 100).toFixed(1) : 0) }], { horizontal:true, suffix:'%', max:100 });
+    chart('cBr', T.byBr.map(e => e.name), [{ label:'الإجمالي', data:T.byBr.map(e => e.tot) }], { horizontal:true });
+    chart('cOut', O.empNames, O.cols.map(t => ({ label:t, data:O.empNames.map(e => O.cell(e, t)) })), { stacked:true });
+  }, 0);
+  return h;
+}
+
+/* ---------- Unconfirmed ---------- */
+function renderUnc(){
+  const rows = flt(D.U);
+  if(!rows.length) return '<div class="empty">لا توجد بيانات «لم يتم التأكيد» للفلاتر المحددة</div>';
+  const tot = sumN(rows), days = activeDays('unc'), uq = uniqueAwb('unc');
+  const fake = sumN(rows, r => r.rev === 'FAKE'), fakeGrp = sumN(rows, r => r.rev === 'FAKE' && r.grp), tr = sumN(rows, r => r.rev === 'TRUE');
+  let h = `<div class="grid kpis">` + kpi('عدد لم يتم التأكيد', N(tot), 'سجلات') +
+    kpi('عدد البوالص المميزة', uq == null ? '—' : N(uq), uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار') +
+    kpi('المتوسط اليومي (avg)', avg1(tot, days), `÷ ${N(days)} يوم فيه شغل`) +
+    kpi('مراجعة TRUE', N(tr), pct(tr, tot) + ' من الإجمالي') +
+    kpi('مراجعة FAKE', N(fake), pct(fake, tot) + ' من الإجمالي', true) +
+    kpi('FAKE اتبلغ على الجروب', N(fakeGrp), `${pct(fakeGrp, fake)} من FAKE — لم يُبلَّغ: ${N(fake - fakeGrp)}`, true) + `</div>`;
+  const byST = [...group(rows, r => r.st)].map(([k, rs]) => ({ st:k, n:sumN(rs), p:pct(sumN(rs), tot), f:sumN(rs, r => r.rev === 'FAKE') })).sort((a, b) => b.n - a.n);
+  h += card('الحالات (حالة الشحنة بالسيستم)', 'العدد والنسبة وعدد FAKE في كل حالة', table([{h:'الحالة',k:'st'},{h:'العدد',k:'n',n:1},{h:'%',k:'p',n:1},{h:'منها FAKE',k:'f',n:1}], byST, { st:'الإجمالي', n:N(tot), p:'100%', f:N(fake) }));
+  const byBr = [...group(rows, r => r.br)].map(([k, rs]) => { const t = sumN(rs), f = sumN(rs, r => r.rev === 'FAKE'); return { br:k, t, tr:sumN(rs, r => r.rev === 'TRUE'), f, o:sumN(rs, r => r.rev === 'OTHER'), b:sumN(rs, r => r.rev === 'BLANK' || r.rev === 'FALSE'), fp:pct(f, t), g:sumN(rs, r => r.rev === 'FAKE' && r.grp) }; }).sort((a, b) => b.t - a.t);
+  h += `<div class="sec-title">نتيجة المراجعة لكل فرع</div><div class="grid two">${card('توزيع المراجعة حسب الفرع', '', '<div class="chartbox"><canvas id="cRev"></canvas></div>')}` +
+    card('الجدول', '', table([{h:'الفرع',k:'br'},{h:'الإجمالي',k:'t',n:1},{h:'TRUE',k:'tr',n:1},{h:'FAKE',k:'f',n:1},{h:'% FAKE',k:'fp',n:1},{h:'FAKE مُبلَّغ جروب',k:'g',n:1},{h:'أخرى',k:'o',n:1},{h:'فارغ',k:'b',n:1}], byBr)) + `</div>`;
+  const fk = rows.filter(r => r.rev === 'FAKE'), sts = uniqSorted(fk.map(r => r.st));
+  const mat = [...group(fk, r => r.br)].map(([k, rs]) => { const o = { br:k, t:sumN(rs) }; sts.forEach((s, i) => o['s' + i] = sumN(rs.filter(r => r.st === s))); return o; }).sort((a, b) => b.t - a.t);
+  h += `<div class="sec-title">الـ FAKE: في أي فرع وعلى أي حالات</div>` +
+    table([{h:'الفرع',k:'br'},{h:'إجمالي FAKE',k:'t',n:1}, ...sts.map((s, i) => ({h:s, k:'s' + i, n:1}))], mat, (() => { const o = { br:'الإجمالي', t:N(fake) }; sts.forEach((s, i) => o['s' + i] = N(sumN(fk, r => r.st === s))); return o; })());
+  setTimeout(() => chart('cRev', byBr.map(b => b.br), [{label:'TRUE', data:byBr.map(b => b.tr)}, {label:'FAKE', data:byBr.map(b => b.f), backgroundColor:'#EF4444'}, {label:'أخرى/فارغ', data:byBr.map(b => b.o + b.b), backgroundColor:'#CBD5E1'}], { stacked:true }), 0);
+  return h;
+}
+
+/* ---------- Overview + Rounds ---------- */
+function renderOverview(){
+  const d = flt(D.O.filter(r => r.sec === 'delivery')), c = flt(D.O.filter(r => r.sec === 'cancel')), u = flt(D.U);
+  let h = `<div class="grid kpis">` +
+    kpi('مشاكل التسليم', N(sumN(d)), `avg ${avg1(sumN(d), activeDays('delivery'))} / يوم`) +
+    kpi('الإلغاءات', N(sumN(c)), `avg ${avg1(sumN(c), activeDays('cancel'))} / يوم`) +
+    kpi('لم يتم التأكيد', N(sumN(u)), `avg ${avg1(sumN(u), activeDays('unc'))} / يوم`) +
+    kpi('نسبة الرد (تسليم + إلغاء)', respStats(d.concat(c)).rate, 'تم الرد ÷ (تم الرد + لم يتم الرد)') + `</div>`;
+  const R = D.rounds;
+  h += `<div class="sec-title">الجولات (Rounds)</div>`;
+  if(R){
+    const ms = selMonths(), sel = R.byMonth.filter(x => ms.includes(x.m));
+    const cnt = [0, 1, 2, 3, 4].map(i => sel.reduce((a, x) => a + x.r[i], 0)), tot = cnt.reduce((a, b) => a + b, 0);
+    const respByRnd = k => { const rs = flt(D.O.filter(r => r.sec !== 'other' && String(r.rnd).replace(/\D/g, '') === k)); const S = respStats(rs); return { n:S.tot, rate:S.rate }; };
+    const rows = R.labels.map((l, i) => { const rr = respByRnd(String(i + 1)); return { l:`Round ${i + 1} (${l})`, n:N(cnt[i]), p:pct(cnt[i], tot), rn:rr.n ? N(rr.n) : '—', rr:rr.n ? rr.rate : 'غير متاح بالمصدر' }; });
+    h += `<div class="grid two">${card('نصيب كل جولة من إجمالي الشغل', 'المصدر: ورقة round — عدد شغل كل جولة ونسبتها من مجموع الجولات للفترة المختارة', '<div class="chartbox"><canvas id="cRnd"></canvas></div>')}` +
+      card('الجدول', 'فلاتر الفرع/الموظف لا تنطبق على أعمدة العدد (الورقة بدون فرع/موظف)', table([{h:'الجولة',k:'l'},{h:'عدد الشغل',k:'n',n:1},{h:'% من الإجمالي',k:'p',n:1},{h:'سجلات بعمود Round',k:'rn',n:1},{h:'نسبة الرد',k:'rr',n:1}], rows, { l:'الإجمالي', n:N(tot), p:'100%' })) + `</div>`;
+    if(R.totalMismatchRows) h += `<div class="notice warn">في ${N(R.totalMismatchRows)} يوم مجموع الجولات لا يساوي عمود Total بالشيت — النسب محسوبة على مجموع الجولات الخمس.</div>`;
+    if(!D.quality.ops.roundFilled) h += `<div class="notice warn">عمود Round في ورقة «مشاكل تسليم» غير مُعبّأ في المصدر، لذلك نسبة الرد لكل جولة غير متاحة. لتفعيلها يجب تسجيل رقم الجولة على كل متابعة.</div>`;
+    setTimeout(() => chart('cRnd', rows.map(r => r.l), [{ label:'عدد الشغل', data:cnt }]), 0);
+  } else h += '<div class="empty">ورقة round غير موجودة في الـ Snapshot</div>';
+  return h;
+}
+
+/* ---------- Assumptions / data quality ---------- */
+function renderAssumptions(){
+  const q = D.quality, oc = Object.entries(q.otherClasses || {}).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => `${esc(k)} (${N(v)})`).join('، ');
+  return `<details class="assume card" style="margin-top:24px"><summary>افتراضات غير مؤكدة وجودة البيانات</summary><ul>` +
+    `<li><b>A1:</b> الإلغاءات = عمود «تصنيف» يحتوي «الغاء»؛ مشاكل التسليم = يحتوي «تسليم». ${q.ops.unclassified ? `بدون تصنيف: ${N(q.ops.unclassified)} سجل.` : ''} ${q.ops.otherClass ? `تصنيفات أخرى مُستبعدة (${N(q.ops.otherClass)}): ${oc}.` : ''}</li>` +
+    `<li><b>A2:</b> نسبة الرد = تم الرد ÷ (تم الرد + لم يتم الرد) من عمود «الحالة النهائية». حالات أخرى: ${N(q.ops.finalOther)} سجل. «جاهز للاستلام» = «نوع الحل» يحتوي «جاهز للاستلام».</li>` +
+    `<li><b>A3:</b> FAKE في الإلغاءات = ظهور fake/فيك في نتيجة التحقيق أو نوع الحل أو الملاحظات أو حالة الشحنة.</li>` +
+    `<li><b>A4:</b> المتوسط اليومي = إجمالي السجلات ÷ عدد الأيام المميزة الفعلية في «تاريخ السحب» للفترة (ليس كل أيام الشهر).</li>` +
+    `<li><b>A5:</b> كل صف = متابعة واحدة؛ البوالص المميزة تظهر بجانب الإجمالي. صفوف بلا تاريخ: ${N(q.ops.noDate)} (تسليم/إلغاء)، ${N(q.unc.noDate)} (لم يتم التأكيد). لم يتم التأكيد: مراجعة فارغة ${N(q.unc.reviewBlank)}، قيمة أخرى ${N(q.unc.reviewOther)}.</li>` +
+    `<li>عمود «حالة الشحنه النهائية 2» في المصدر #REF! ولا يُستخدم.</li></ul></details>`;
+}
+
+/* ---------- Render ---------- */
+function renderBody(){
+  destroyCharts();
+  const body = state.tab === 'overview' ? renderOverview() : state.tab === 'unc' ? renderUnc() : renderOps(state.tab);
+  $('#app').innerHTML = body + renderAssumptions();
+  const dt = new Date(D.generatedAt); $('#stamp').textContent = isNaN(dt) ? '' : 'آخر تحديث للـ Snapshot: ' + dt.toLocaleString('ar-EG');
+}
+function render(){ renderTabs(); renderFilters(); renderBody(); }
+
+/* ---------- Boot ---------- */
+$('#btnRefresh').onclick = load;
+$('#btnSettings').onclick = () => { $('#apiUrl').value = apiUrl(); $('#dlg').showModal(); };
+$('#saveUrl').onclick = () => { const v = $('#apiUrl').value.trim(); if(v){ lsSet(LS.url, v); setTimeout(load, 0); } };
+load();
+setInterval(() => { if(apiUrl() && !document.hidden) load(); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>
