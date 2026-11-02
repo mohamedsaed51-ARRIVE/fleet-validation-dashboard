@@ -221,9 +221,17 @@ function findSheet_(ss, name) {
   for (var i = 0; i < sheets.length; i++) if (normText_(sheets[i].getName()) === want) return sheets[i];
   return null;
 }
+/** قراءة على دفعات: قراءة الورقة كلها مرة واحدة تفشل (Requested data exceeds the maximum allowed size) */
 function readAll_(sh) {
-  var lr = sh.getLastRow(), lc = sh.getLastColumn();
-  return lr < 1 ? [] : sh.getRange(1, 1, lr, lc).getValues();
+  var lr = sh.getLastRow(), lc = sh.getLastColumn(), STEP = 3000;
+  if (lr < 1) return [];
+  var out = [];
+  for (var r = 1; r <= lr; r += STEP) {
+    var n = Math.min(STEP, lr - r + 1);
+    var part = sh.getRange(r, 1, n, lc).getValues();
+    for (var i = 0; i < part.length; i++) out.push(part[i]);
+  }
+  return out;
 }
 
 function buildSnapshot() {
