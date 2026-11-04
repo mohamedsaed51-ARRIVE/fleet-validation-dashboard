@@ -14,7 +14,7 @@
  */
 
 var CFG = {
-  SHEETS: { delivery: 'مشاكل تسليم', unconfirmed: 'لم يتم التاكيد', rounds: 'round' },
+  SHEETS: { delivery: 'مشاكل التسليم', unconfirmed: 'لم يتم التاكيد', rounds: 'round' },
   SNAPSHOT_SHEET: 'DASH_SNAPSHOT',
   CHUNK: 40000,              // حد الخلية 50,000 حرف
   VERSION: 1,
