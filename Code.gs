@@ -261,11 +261,22 @@ function readSnapshot_() {
   return out.getRange(2, 1, n, 1).getValues().map(function (r) { return r[0]; }).join('');
 }
 
-function doGet() {
-  var body;
+function doGet(e) {
+  var body, warn = '';
   try {
+    // ?action=refresh -> يعيد بناء الـ Snapshot أولًا ثم يرجّعه (زر «تحديث» في الداشبورد)
+    if (e && e.parameter && e.parameter.action === 'refresh') {
+      try { buildSnapshot(); }
+      catch (err) {
+        // لو بناء آخر شغّال حاليًا نرجّع آخر Snapshot متاح مع تنبيه، وأي خطأ آخر يُرجَّع كما هو
+        if (String(err && err.message) !== 'Another build is running') throw err;
+        warn = 'build-in-progress';
+      }
+    }
     var json = readSnapshot_();
-    body = json ? '{"ok":true,"data":' + json + '}' : JSON.stringify({ ok: false, error: 'snapshot-missing: run setupAll() or buildSnapshot()' });
+    body = json
+      ? '{"ok":true' + (warn ? ',"warn":"' + warn + '"' : '') + ',"data":' + json + '}'
+      : JSON.stringify({ ok: false, error: 'snapshot-missing: run setupAll() or buildSnapshot()' });
   } catch (err) { body = JSON.stringify({ ok: false, error: String(err && err.message || err) }); }
   return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JSON);
 }
