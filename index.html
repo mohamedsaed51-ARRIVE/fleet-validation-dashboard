@@ -156,40 +156,12 @@ nav.tabs{display:flex;gap:4px;padding:0 var(--page-pad);background:var(--surface
 .filters label{display:flex;flex-direction:column;font-size:var(--fs-caption);color:var(--text-secondary);gap:4px}
 select{font:inherit;height:var(--control-h-md);min-width:170px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface-card);color:var(--text-primary);padding:0 8px}
 main{max-width:var(--page-max);margin:0 auto;padding:0 var(--page-pad) 48px}
-.grid{display:grid;gap:16px}
+.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:16px}
 .two{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
 .card{background:var(--surface-card);border:1px solid var(--border-default);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:16px;min-width:0}
 .card h3{margin:0 0 4px;font-size:var(--fs-subtitle)} .card .sub{color:var(--text-secondary);font-size:var(--fs-caption);margin-bottom:10px}
-/* ---- KPI rail: الكروت في الجنب (عمود ثابت) + تصميم الكارت: شريط لون + أيقونة + رقم كبير + شريط نسبة ---- */
-.layout{display:grid;grid-template-columns:304px minmax(0,1fr);gap:20px;align-items:start}
-.content{min-width:0}
-.rail{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;display:flex;flex-direction:column;gap:18px;padding:16px 14px;background:linear-gradient(180deg,var(--arrive-navy),var(--arrive-blue-900));border-radius:var(--radius-lg);box-shadow:var(--shadow-raised)}
-.rail-brand{display:flex;align-items:center;gap:10px;color:#fff;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.14)}
-.rail-brand b{font-family:var(--font-latin);font-size:20px;letter-spacing:.5px}
-.rail-brand b::after{content:"";display:inline-block;width:8px;height:8px;margin-inline-start:4px;border-radius:50%;background:var(--arrive-teal)}
-.rail-brand small{color:rgba(255,255,255,.7);font-size:var(--fs-caption)}
-.rail .kgroup h4{color:#fff}
-.rail .kgroup h4::before{background:var(--tone);box-shadow:0 0 0 3px rgba(255,255,255,.18)}
-.rail .kgroup.tone-unc,.rail .kgroup.tone-all{--tone:#CBD5E1}
-.rail .kcard{border-color:transparent;box-shadow:none}
-.kgroup{--tone:var(--arrive-blue)}
-.kgroup.tone-cancel{--tone:var(--arrive-teal-600)}
-.kgroup.tone-unc{--tone:var(--ink)}
-.kgroup.tone-all{--tone:var(--gray-500)}
-.kgroup h4{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:var(--fs-small);font-weight:800;color:var(--tone)}
-.kgroup h4::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tone)}
-.kcards{display:grid;gap:8px}
-.kcard{display:flex;gap:12px;align-items:flex-start;background:var(--surface-card);border:1px solid var(--border-default);border-inline-start:4px solid var(--tone);border-radius:var(--radius-md);box-shadow:var(--shadow-xs);padding:10px 12px}
-.kcard.bad{--tone:var(--status-violation)}
-.kcard.bad .kv{color:var(--status-violation-fg)}
-.kic{flex:none;width:34px;height:34px;border-radius:var(--radius-sm);background:color-mix(in srgb,var(--tone) 13%,transparent);color:var(--tone);display:grid;place-items:center}
-.kic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.kbody{min-width:0;flex:1}
-.kl{font-size:var(--fs-caption);font-weight:700;color:var(--text-secondary)}
-.kv{font-size:26px;font-weight:800;line-height:1.15;color:var(--text-primary)}
-.ks{font-size:var(--fs-micro);color:var(--text-secondary);line-height:1.4}
-.kbar{height:5px;border-radius:99px;background:var(--surface-alt);margin-top:6px;overflow:hidden;border:1px solid var(--border-default)}
-.kbar i{display:block;height:100%;background:var(--tone);border-radius:inherit}
+.kpi .v{font-size:var(--fs-kpi);font-weight:800;color:var(--arrive-blue);line-height:1.1;margin:6px 0 2px}.kpi .l{font-weight:700}.kpi .s{font-size:var(--fs-caption);color:var(--text-secondary)}
+.kpi.bad .v{color:var(--status-violation-fg)}
 .sec-title{font-size:var(--fs-section);font-weight:800;margin:24px 0 12px}
 .tbl{overflow:auto;max-height:480px;border:1px solid var(--border-default);border-radius:var(--radius-md)}
 table{border-collapse:collapse;width:100%;font-size:var(--fs-small)}
@@ -241,7 +213,6 @@ body.rp-open{overflow:hidden}
   th{background:var(--arrive-blue)!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   tr.tot td,tr:nth-child(even) td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
-@media(max-width:1000px){.layout{grid-template-columns:1fr}.rail{position:static;max-height:none}.kcards{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}}
 @media(max-width:720px){:root{--page-pad:16px}.two{grid-template-columns:1fr}}
 </style>
 </head>
@@ -383,23 +354,7 @@ function table(cols, rows, totalRow){
   const tr = r => `<tr>${cols.map(c => `<td class="${c.n ? 'n num' : ''}">${c.raw ? r[c.k] : esc(r[c.k])}</td>`).join('')}</tr>`;
   return `<div class="tbl"><table><thead><tr>${th}</tr></thead><tbody>${rows.map(tr).join('')}${totalRow ? `<tr class="tot">${cols.map(c => `<td class="${c.n ? 'n num' : ''}">${esc(totalRow[c.k] ?? '')}</td>`).join('')}</tr>` : ''}</tbody></table></div>`;
 }
-const ICONS = {
-  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
-  hash:'<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>',
-  trend:'<path d="m3 17 6-6 4 4 8-8M15 7h6v6"/>',
-  rate:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
-  box:'<path d="M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/>',
-  alert:'<path d="M12 3 2 20h20zM12 10v4M12 17h.01"/>',
-  check:'<path d="M20 6 9 17l-5-5"/>',
-  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/>'
-};
-// كارت مؤشر: {ic, l, v, s, bad, bar(0-100 اختياري)}
-const kcard = k => `<div class="kcard ${k.bad ? 'bad' : ''}"><span class="kic" aria-hidden="true"><svg viewBox="0 0 24 24">${ICONS[k.ic] || ICONS.list}</svg></span>` +
-  `<div class="kbody"><div class="kl">${esc(k.l)}</div><div class="kv num">${esc(k.v)}</div><div class="ks">${esc(k.s || '')}</div>` +
-  (k.bar != null ? `<div class="kbar"><i style="width:${Math.max(0, Math.min(100, k.bar)).toFixed(1)}%"></i></div>` : '') + `</div></div>`;
-const kgroup = g => `<section class="kgroup tone-${g.tone}"><h4>${esc(g.t)}</h4><div class="kcards">${g.items.map(kcard).join('')}</div></section>`;
-const shell = (groups, content) => `<div class="layout"><aside class="rail" aria-label="المؤشرات الرئيسية"><div class="rail-brand"><b>ARRIVE</b><small>المؤشرات الرئيسية</small></div>${groups.map(kgroup).join('')}</aside><div class="content">${content}</div></div>`;
-const pnum = (a, b) => b > 0 ? a / b * 100 : null;
+const kpi = (l, v, s, bad) => `<div class="card kpi ${bad ? 'bad' : ''}"><div class="l">${esc(l)}</div><div class="v num">${esc(v)}</div><div class="s">${esc(s || '')}</div></div>`;
 const card = (t, sub, inner) => `<div class="card"><h3>${esc(t)}</h3><div class="sub">${esc(sub || '')}</div>${inner}</div>`;
 const selMonths = () => state.month ? [state.month] : D.months.map(m => m.m);
 const activeDays = key => selMonths().reduce((a, m) => a + (D.days[key === 'unc' ? 'unc' : 'ops'][key === 'unc' ? m : key + '|' + m] || 0), 0);
@@ -435,35 +390,17 @@ function outcomesBlock(rows, idPrefix){
   const html = table([{h:'الموظف',k:'name'},{h:'إجمالي تم الرد',k:'tot',n:1}, ...cols.map((t, i) => ({h:t, k:'c' + i, n:1}))], rowsT);
   return { html, cols, empNames, cell };
 }
-function opsKpiGroup(sec, rows){
-  const isC = sec === 'cancel', name = isC ? 'الإلغاءات' : 'مشاكل التسليم', S = respStats(rows), days = activeDays(sec), uq = uniqueAwb(sec), fk = sumN(rows, r => r.fake);
-  const items = [
-    { ic:'list',  l:'عدد ' + name, v:N(S.tot), s:'سجلات متابعة (كل صف = متابعة)' },
-    { ic:'hash',  l:'عدد البوالص المميزة', v:uq == null ? '—' : N(uq), s:uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار' },
-    { ic:'trend', l:'المتوسط اليومي (avg)', v:avg1(S.tot, days), s:`÷ ${N(days)} يوم فيه شغل` },
-    { ic:'rate',  l:'نسبة الرد', v:S.rate, s:`تم الرد ${N(S.res)} من ${N(S.res + S.nor)} (تم الرد + لم يتم الرد)`, bar:pnum(S.res, S.res + S.nor) },
-    { ic:'box',   l:'جاهز للاستلام', v:N(S.ready), s:S.readyPct + ' من تم الرد', bar:pnum(S.ready, S.res) }
-  ];
-  if(isC) items.push({ ic:'alert', l:'FAKE (افتراض A3)', v:N(fk), s:pct(fk, S.tot) + ' من الإلغاءات', bad:true, bar:pnum(fk, S.tot) });
-  return { t:name, tone:isC ? 'cancel' : 'delivery', items };
-}
-function uncKpiGroup(rows){
-  const tot = sumN(rows), days = activeDays('unc'), uq = uniqueAwb('unc');
-  const fake = sumN(rows, r => r.rev === 'FAKE'), fakeGrp = sumN(rows, r => r.rev === 'FAKE' && r.grp), tr = sumN(rows, r => r.rev === 'TRUE');
-  return { t:'لم يتم التأكيد', tone:'unc', items:[
-    { ic:'list',  l:'عدد لم يتم التأكيد', v:N(tot), s:'سجلات' },
-    { ic:'hash',  l:'عدد البوالص المميزة', v:uq == null ? '—' : N(uq), s:uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار' },
-    { ic:'trend', l:'المتوسط اليومي (avg)', v:avg1(tot, days), s:`÷ ${N(days)} يوم فيه شغل` },
-    { ic:'check', l:'مراجعة TRUE', v:N(tr), s:pct(tr, tot) + ' من الإجمالي', bar:pnum(tr, tot) },
-    { ic:'alert', l:'مراجعة FAKE', v:N(fake), s:pct(fake, tot) + ' من الإجمالي', bad:true, bar:pnum(fake, tot) },
-    { ic:'bell',  l:'FAKE اتبلغ على الجروب', v:N(fakeGrp), s:`${pct(fakeGrp, fake)} من FAKE — لم يُبلَّغ: ${N(fake - fakeGrp)}`, bad:true, bar:pnum(fakeGrp, fake) }
-  ] };
-}
 function renderOps(sec){
   const rows = flt(D.O.filter(r => r.sec === sec)), isC = sec === 'cancel', name = isC ? 'الإلغاءات' : 'مشاكل التسليم';
   if(!rows.length) return `<div class="empty">لا توجد بيانات ${name} للفلاتر المحددة</div>`;
-  const T = opsTables(rows);
-  let h = '';
+  const T = opsTables(rows), days = activeDays(sec), uq = uniqueAwb(sec);
+  let h = `<div class="grid kpis">` +
+    kpi('عدد ' + name, N(T.S.tot), 'سجلات متابعة (كل صف = متابعة)') +
+    kpi('عدد البوالص المميزة', uq == null ? '—' : N(uq), uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار') +
+    kpi('المتوسط اليومي (avg)', avg1(T.S.tot, days), `÷ ${N(days)} يوم فيه شغل`) +
+    kpi('نسبة الرد', T.S.rate, `تم الرد ${N(T.S.res)} من ${N(T.S.res + T.S.nor)} (تم الرد + لم يتم الرد)`) +
+    kpi('جاهز للاستلام', N(T.S.ready), T.S.readyPct + ' من تم الرد') +
+    (isC ? kpi('FAKE (افتراض A3)', N(sumN(rows, r => r.fake)), pct(sumN(rows, r => r.fake), T.S.tot) + ' من الإلغاءات', true) : '') + `</div>`;
   if(T.S.oth) h += `<div class="notice warn">يوجد ${N(T.S.oth)} سجل بحالة نهائية غير «تم الرد/لم يتم الرد» — مُستبعد من نسبة الرد ومُدرج في الإجمالي فقط.</div>`;
   h += `<div class="grid two">${card('نسبة الرد لكل موظف', `من إجمالي ${name} (تم الرد ÷ (تم الرد + لم يتم الرد))`, '<div class="chartbox"><canvas id="cEmp"></canvas></div>')}` +
        card('الإجمالي حسب الفرع', 'عدد ونسبة كل فرع من إجمالي ' + name, '<div class="chartbox"><canvas id="cBr"></canvas></div>') + `</div>`;
@@ -484,15 +421,21 @@ function renderOps(sec){
     chart('cBr', T.byBr.map(e => e.name), [{ label:'الإجمالي', data:T.byBr.map(e => e.tot) }], { horizontal:true });
     chart('cOut', O.empNames, O.cols.map(t => ({ label:t, data:O.empNames.map(e => O.cell(e, t)) })), { stacked:true });
   }, 0);
-  return shell([opsKpiGroup(sec, rows)], h);
+  return h;
 }
 
 /* ---------- Unconfirmed ---------- */
 function renderUnc(){
   const rows = flt(D.U);
   if(!rows.length) return '<div class="empty">لا توجد بيانات «لم يتم التأكيد» للفلاتر المحددة</div>';
-  const tot = sumN(rows), fake = sumN(rows, r => r.rev === 'FAKE');
-  let h = '';
+  const tot = sumN(rows), days = activeDays('unc'), uq = uniqueAwb('unc');
+  const fake = sumN(rows, r => r.rev === 'FAKE'), fakeGrp = sumN(rows, r => r.rev === 'FAKE' && r.grp), tr = sumN(rows, r => r.rev === 'TRUE');
+  let h = `<div class="grid kpis">` + kpi('عدد لم يتم التأكيد', N(tot), 'سجلات') +
+    kpi('عدد البوالص المميزة', uq == null ? '—' : N(uq), uq == null ? 'غير متاح مع فلتر فرع/موظف' : 'بدون تكرار') +
+    kpi('المتوسط اليومي (avg)', avg1(tot, days), `÷ ${N(days)} يوم فيه شغل`) +
+    kpi('مراجعة TRUE', N(tr), pct(tr, tot) + ' من الإجمالي') +
+    kpi('مراجعة FAKE', N(fake), pct(fake, tot) + ' من الإجمالي', true) +
+    kpi('FAKE اتبلغ على الجروب', N(fakeGrp), `${pct(fakeGrp, fake)} من FAKE — لم يُبلَّغ: ${N(fake - fakeGrp)}`, true) + `</div>`;
   const byST = [...group(rows, r => r.st)].map(([k, rs]) => ({ st:k, n:sumN(rs), p:pct(sumN(rs), tot), f:sumN(rs, r => r.rev === 'FAKE') })).sort((a, b) => b.n - a.n);
   h += card('الحالات (حالة الشحنة بالسيستم)', 'العدد والنسبة وعدد FAKE في كل حالة', table([{h:'الحالة',k:'st'},{h:'العدد',k:'n',n:1},{h:'%',k:'p',n:1},{h:'منها FAKE',k:'f',n:1}], byST, { st:'الإجمالي', n:N(tot), p:'100%', f:N(fake) }));
   const byBr = [...group(rows, r => r.br)].map(([k, rs]) => { const t = sumN(rs), f = sumN(rs, r => r.rev === 'FAKE'); return { br:k, t, tr:sumN(rs, r => r.rev === 'TRUE'), f, o:sumN(rs, r => r.rev === 'OTHER'), b:sumN(rs, r => r.rev === 'BLANK' || r.rev === 'FALSE'), fp:pct(f, t), g:sumN(rs, r => r.rev === 'FAKE' && r.grp) }; }).sort((a, b) => b.t - a.t);
@@ -503,18 +446,17 @@ function renderUnc(){
   h += `<div class="sec-title">الـ FAKE: في أي فرع وعلى أي حالات</div>` +
     table([{h:'الفرع',k:'br'},{h:'إجمالي FAKE',k:'t',n:1}, ...sts.map((s, i) => ({h:s, k:'s' + i, n:1}))], mat, (() => { const o = { br:'الإجمالي', t:N(fake) }; sts.forEach((s, i) => o['s' + i] = N(sumN(fk, r => r.st === s))); return o; })());
   setTimeout(() => chart('cRev', byBr.map(b => b.br), [{label:'TRUE', data:byBr.map(b => b.tr)}, {label:'FAKE', data:byBr.map(b => b.f), backgroundColor:'#EF4444'}, {label:'أخرى/فارغ', data:byBr.map(b => b.o + b.b), backgroundColor:'#CBD5E1'}], { stacked:true }), 0);
-  return shell([uncKpiGroup(rows)], h);
+  return h;
 }
 
 /* ---------- Overview + Rounds ---------- */
 function renderOverview(){
   const d = flt(D.O.filter(r => r.sec === 'delivery')), c = flt(D.O.filter(r => r.sec === 'cancel')), u = flt(D.U);
-  const S = respStats(d.concat(c));
-  const groups = [{ t:'نظرة عامة', tone:'all', items:[{ ic:'rate', l:'نسبة الرد (تسليم + إلغاء)', v:S.rate, s:'تم الرد ÷ (تم الرد + لم يتم الرد)', bar:pnum(S.res, S.res + S.nor) }] }];
-  if(d.length) groups.push(opsKpiGroup('delivery', d));
-  if(c.length) groups.push(opsKpiGroup('cancel', c));
-  if(u.length) groups.push(uncKpiGroup(u));
-  let h = '';
+  let h = `<div class="grid kpis">` +
+    kpi('مشاكل التسليم', N(sumN(d)), `avg ${avg1(sumN(d), activeDays('delivery'))} / يوم`) +
+    kpi('الإلغاءات', N(sumN(c)), `avg ${avg1(sumN(c), activeDays('cancel'))} / يوم`) +
+    kpi('لم يتم التأكيد', N(sumN(u)), `avg ${avg1(sumN(u), activeDays('unc'))} / يوم`) +
+    kpi('نسبة الرد (تسليم + إلغاء)', respStats(d.concat(c)).rate, 'تم الرد ÷ (تم الرد + لم يتم الرد)') + `</div>`;
   const R = D.rounds;
   h += `<div class="sec-title">الجولات (Rounds)</div>`;
   if(R){
@@ -528,7 +470,7 @@ function renderOverview(){
     if(!D.quality.ops.roundFilled) h += `<div class="notice warn">عمود Round في ورقة «مشاكل تسليم» غير مُعبّأ في المصدر، لذلك نسبة الرد لكل جولة غير متاحة. لتفعيلها يجب تسجيل رقم الجولة على كل متابعة.</div>`;
     setTimeout(() => chart('cRnd', rows.map(r => r.l), [{ label:'عدد الشغل', data:cnt }]), 0);
   } else h += '<div class="empty">ورقة round غير موجودة في الـ Snapshot</div>';
-  return shell(groups, h);
+  return h;
 }
 
 /* ---------- Assumptions / data quality ---------- */
