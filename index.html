@@ -378,6 +378,23 @@ function opsTables(rows){
     empHtml: table(colsE, byEmp, tot(S)),
     brHtml: table([{h:'الفرع',k:'name'},{h:'الإجمالي',k:'tot',n:1},{h:'% من الإجمالي',k:'share',n:1},{h:'تم الرد',k:'res',n:1},{h:'نسبة الرد',k:'rate',n:1},{h:'جاهز للاستلام',k:'ready',n:1},{h:'% جاهز من تم الرد',k:'readyPct',n:1}], byBr, tot({ ...S, share:'100%' })) };
 }
+// «جاهز للاستلام اليوم أو غدا» من عمود «نتيجة التحقيق» (A6) — بالفروع وبالموظفين
+function soonTables(rows){
+  if(!D.opsCols.includes('soon')) return '<div class="notice warn">هذا الجدول يحتاج تحديث البيانات (زر «تحديث») بعد تحديث Code.gs.</div>';
+  const tot = sumN(rows), s = sumN(rows, r => r.soon);
+  const mk = keyFn => [...group(rows, keyFn)].map(([k, rs]) => ({ name:k, tot:sumN(rs), s:sumN(rs, r => r.soon), p:pct(sumN(rs, r => r.soon), sumN(rs)) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+  const cols = lbl => [{h:lbl,k:'name'},{h:'جاهز للاستلام اليوم أو غدا',k:'s',n:1},{h:'% من إجمالي الفرع/الموظف',k:'p',n:1},{h:'الإجمالي',k:'tot',n:1}];
+  const total = { name:'الإجمالي', s:N(s), p:pct(s, tot), tot:N(tot) };
+  return `<div class="grid two">${card('جاهز للاستلام اليوم أو غدا — بالفروع', 'المصدر: عمود «نتيجة التحقيق» (افتراض A6)', table(cols('الفرع'), mk(r => r.br), total))}` +
+         `${card('جاهز للاستلام اليوم أو غدا — بالموظفين', 'المصدر: عمود «نتيجة التحقيق» (افتراض A6)', table(cols('الموظف'), mk(r => r.emp), total))}</div>`;
+}
+// «الحالات» من عمود «حالة الشحنة تم سحبها» في لم يتم التأكيد
+function pulledTable(rows){
+  if(!D.uncCols.includes('stp')) return '<div class="notice warn">هذا الجدول يحتاج تحديث البيانات (زر «تحديث») بعد تحديث Code.gs.</div>';
+  const tot = sumN(rows), fake = sumN(rows, r => r.rev === 'FAKE');
+  const by = [...group(rows, r => r.stp)].map(([k, rs]) => ({ st:k, n:sumN(rs), p:pct(sumN(rs), tot), f:sumN(rs, r => r.rev === 'FAKE') })).sort((a, b) => b.n - a.n);
+  return table([{h:'الحالة',k:'st'},{h:'العدد',k:'n',n:1},{h:'%',k:'p',n:1},{h:'منها FAKE',k:'f',n:1}], by, { st:'الإجمالي', n:N(tot), p:'100%', f:N(fake) });
+}
 function outcomesBlock(rows, idPrefix){
   const resp = rows.filter(r => r.fin === 'responded');
   const types = [...group(resp, r => r.sol || NA)].map(([k, rs]) => [k, sumN(rs)]).sort((a, b) => b[1] - a[1]);
@@ -404,7 +421,7 @@ function renderOps(sec){
   if(T.S.oth) h += `<div class="notice warn">يوجد ${N(T.S.oth)} سجل بحالة نهائية غير «تم الرد/لم يتم الرد» — مُستبعد من نسبة الرد ومُدرج في الإجمالي فقط.</div>`;
   h += `<div class="grid two">${card('نسبة الرد لكل موظف', `من إجمالي ${name} (تم الرد ÷ (تم الرد + لم يتم الرد))`, '<div class="chartbox"><canvas id="cEmp"></canvas></div>')}` +
        card('الإجمالي حسب الفرع', 'عدد ونسبة كل فرع من إجمالي ' + name, '<div class="chartbox"><canvas id="cBr"></canvas></div>') + `</div>`;
-  h += `<div class="sec-title">أداء الموظفين</div>${T.empHtml}<div class="sec-title">أداء الفروع</div>${T.brHtml}`;
+  h += `<div class="sec-title">أداء الموظفين</div>${T.empHtml}<div class="sec-title">أداء الفروع</div>${T.brHtml}<div class="sec-title">جاهز للاستلام اليوم أو غدا (نتيجة التحقيق)</div>${soonTables(rows)}`;
   const O = outcomesBlock(rows);
   h += `<div class="sec-title">نتائج «تم الرد» لكل موظف (نوع الحل)</div><div class="card"><div class="chartbox"><canvas id="cOut"></canvas></div></div><div style="height:12px"></div>${O.html}`;
   if(isC){
@@ -438,6 +455,7 @@ function renderUnc(){
     kpi('FAKE اتبلغ على الجروب', N(fakeGrp), `${pct(fakeGrp, fake)} من FAKE — لم يُبلَّغ: ${N(fake - fakeGrp)}`, true) + `</div>`;
   const byST = [...group(rows, r => r.st)].map(([k, rs]) => ({ st:k, n:sumN(rs), p:pct(sumN(rs), tot), f:sumN(rs, r => r.rev === 'FAKE') })).sort((a, b) => b.n - a.n);
   h += card('الحالات (حالة الشحنة بالسيستم)', 'العدد والنسبة وعدد FAKE في كل حالة', table([{h:'الحالة',k:'st'},{h:'العدد',k:'n',n:1},{h:'%',k:'p',n:1},{h:'منها FAKE',k:'f',n:1}], byST, { st:'الإجمالي', n:N(tot), p:'100%', f:N(fake) }));
+  h += card('الحالات (حالة الشحنة تم سحبها)', 'العدد والنسبة وعدد FAKE في كل حالة — المصدر: عمود «حالة الشحنة تم سحبها»', pulledTable(rows));
   const byBr = [...group(rows, r => r.br)].map(([k, rs]) => { const t = sumN(rs), f = sumN(rs, r => r.rev === 'FAKE'); return { br:k, t, tr:sumN(rs, r => r.rev === 'TRUE'), f, o:sumN(rs, r => r.rev === 'OTHER'), b:sumN(rs, r => r.rev === 'BLANK' || r.rev === 'FALSE'), fp:pct(f, t), g:sumN(rs, r => r.rev === 'FAKE' && r.grp) }; }).sort((a, b) => b.t - a.t);
   h += `<div class="sec-title">نتيجة المراجعة لكل فرع</div><div class="grid two">${card('توزيع المراجعة حسب الفرع', '', '<div class="chartbox"><canvas id="cRev"></canvas></div>')}` +
     card('الجدول', '', table([{h:'الفرع',k:'br'},{h:'الإجمالي',k:'t',n:1},{h:'TRUE',k:'tr',n:1},{h:'FAKE',k:'f',n:1},{h:'% FAKE',k:'fp',n:1},{h:'FAKE مُبلَّغ جروب',k:'g',n:1},{h:'أخرى',k:'o',n:1},{h:'فارغ',k:'b',n:1}], byBr)) + `</div>`;
@@ -479,6 +497,7 @@ function renderAssumptions(){
   return `<details class="assume card" style="margin-top:24px"><summary>افتراضات غير مؤكدة وجودة البيانات</summary><ul>` +
     `<li><b>A1:</b> الإلغاءات = عمود «تصنيف» يحتوي «الغاء»؛ مشاكل التسليم = يحتوي «تسليم». ${q.ops.unclassified ? `بدون تصنيف: ${N(q.ops.unclassified)} سجل.` : ''} ${q.ops.otherClass ? `تصنيفات أخرى مُستبعدة (${N(q.ops.otherClass)}): ${oc}.` : ''}</li>` +
     `<li><b>A2:</b> نسبة الرد = تم الرد ÷ (تم الرد + لم يتم الرد) من عمود «الحالة النهائية». حالات أخرى: ${N(q.ops.finalOther)} سجل. «جاهز للاستلام» = «نوع الحل» يحتوي «جاهز للاستلام».</li>` +
+    `<li><b>A6:</b> «جاهز للاستلام اليوم أو غدا» = ظهور العبارة في عمود «نتيجة التحقيق» (عدد السجلات: ${N(q.ops.soon || 0)}).</li>` +
     `<li><b>A3:</b> FAKE في الإلغاءات = ظهور fake/فيك في نتيجة التحقيق أو نوع الحل أو الملاحظات أو حالة الشحنة.</li>` +
     `<li><b>A4:</b> المتوسط اليومي = إجمالي السجلات ÷ عدد الأيام المميزة الفعلية في «تاريخ السحب» للفترة (ليس كل أيام الشهر).</li>` +
     `<li><b>A5:</b> كل صف = متابعة واحدة؛ البوالص المميزة تظهر بجانب الإجمالي. صفوف بلا تاريخ: ${N(q.ops.noDate)} (تسليم/إلغاء)، ${N(q.unc.noDate)} (لم يتم التأكيد). لم يتم التأكيد: مراجعة فارغة ${N(q.unc.reviewBlank)}، قيمة أخرى ${N(q.unc.reviewOther)}.</li>` +
@@ -522,7 +541,7 @@ function rpOps(sec){
     ['المتوسط اليومي (avg)', avg1(S.tot, days), `إجمالي السجلات ÷ ${N(days)} يوم فيه شغل`], ['نسبة الرد', S.rate, `تم الرد ${N(S.res)} ÷ (تم الرد + لم يتم الرد = ${N(S.res + S.nor)})`],
     ['جاهز للاستلام', N(S.ready), S.readyPct + ' من تم الرد']];
   if(isC) k.push(['FAKE (افتراض A3)', N(fk), pct(fk, S.tot) + ' من الإلغاءات']);
-  let h = `<section class="rp-sec"><h2>${name}</h2><h3>المؤشرات</h3>${rpKpis(k)}<h3>أداء الموظفين</h3>${T.empHtml}<h3>أداء الفروع</h3>${T.brHtml}<h3>نتائج «تم الرد» لكل موظف (نوع الحل)</h3>${outcomesBlock(rows).html}`;
+  let h = `<section class="rp-sec"><h2>${name}</h2><h3>المؤشرات</h3>${rpKpis(k)}<h3>أداء الموظفين</h3>${T.empHtml}<h3>أداء الفروع</h3>${T.brHtml}<h3>جاهز للاستلام اليوم أو غدا (نتيجة التحقيق)</h3>${soonTables(rows)}<h3>نتائج «تم الرد» لكل موظف (نوع الحل)</h3>${outcomesBlock(rows).html}`;
   if(S.oth) h += `<p class="rp-note">${N(S.oth)} سجل بحالة نهائية غير «تم الرد/لم يتم الرد» — مُدرج في الإجمالي ومُستبعد من نسبة الرد.</p>`;
   const facts = [`<li>بلغ عدد ${name} <b>${N(S.tot)}</b> سجل متابعة بمتوسط <b>${avg1(S.tot, days)}</b> يوميًا، ونسبة الرد <b><span class="num">${S.rate}</span></b> (تم الرد ${N(S.res)}، لم يتم الرد ${N(S.nor)}).</li>`,
     rpExtremes(T.byEmp, 'الموظفون'), rpExtremes(T.byBr, 'الفروع')].filter(Boolean);
@@ -550,6 +569,7 @@ function rpUnc(){
   const mat = [...group(fk, r => r.br)].map(([x, rs]) => { const o = { br:x, t:sumN(rs) }; sts.forEach((st, i) => o['s' + i] = sumN(rs.filter(r => r.st === st))); return o; }).sort((a, b) => b.t - a.t);
   const totRow = { br:'الإجمالي', t:N(fake) }; sts.forEach((st, i) => totRow['s' + i] = N(sumN(fk, r => r.st === st)));
   const h = `<section class="rp-sec"><h2>لم يتم التأكيد</h2><h3>المؤشرات</h3>${rpKpis(k)}<h3>الحالات (حالة الشحنة بالسيستم)</h3>${table([{h:'الحالة',k:'st'},{h:'العدد',k:'n',n:1},{h:'%',k:'p',n:1},{h:'منها FAKE',k:'f',n:1}], byST, { st:'الإجمالي', n:N(tot), p:'100%', f:N(fake) })}` +
+    `<h3>الحالات (حالة الشحنة تم سحبها)</h3>${pulledTable(rows)}` +
     `<h3>نتيجة المراجعة لكل فرع</h3>${table([{h:'الفرع',k:'br'},{h:'الإجمالي',k:'t',n:1},{h:'TRUE',k:'tr',n:1},{h:'FAKE',k:'f',n:1},{h:'% FAKE',k:'fp',n:1},{h:'FAKE مُبلَّغ جروب',k:'g',n:1},{h:'أخرى/فارغ',k:'o',n:1}], byBr)}` +
     `<h3>الـ FAKE: الفرع × الحالة</h3>${table([{h:'الفرع',k:'br'},{h:'إجمالي FAKE',k:'t',n:1}, ...sts.map((st, i) => ({ h:st, k:'s' + i, n:1 }))], mat, totRow)}</section>`;
   const facts = [`<li>بلغ عدد «لم يتم التأكيد» <b>${N(tot)}</b> سجل بمتوسط <b>${avg1(tot, days)}</b> يوميًا؛ مراجعة TRUE ${N(tr)} (${P(tr, tot)})، وFAKE ${N(fake)} (${P(fake, tot)}).</li>`];
@@ -571,6 +591,7 @@ function rpAssumptions(){
   return `<section class="rp-sec"><h2>الافتراضات وجودة البيانات</h2><ul>` +
    `<li><b>A1:</b> الإلغاءات = «تصنيف» يحتوي «الغاء»؛ مشاكل التسليم = يحتوي «تسليم». بدون تصنيف: ${N(q.ops.unclassified)}؛ تصنيفات أخرى مستبعدة: ${N(q.ops.otherClass)}.</li>` +
    `<li><b>A2:</b> نسبة الرد = تم الرد ÷ (تم الرد + لم يتم الرد). حالات نهائية أخرى: ${N(q.ops.finalOther)}. «جاهز للاستلام» = «نوع الحل» يحتوي «جاهز للاستلام».</li>` +
+   `<li><b>A6:</b> «جاهز للاستلام اليوم أو غدا» = ظهور العبارة في عمود «نتيجة التحقيق» (عدد السجلات: ${N(q.ops.soon || 0)}).</li>` +
    `<li><b>A3:</b> FAKE في الإلغاءات = ظهور fake/فيك في نتيجة التحقيق أو نوع الحل أو الملاحظات أو حالة الشحنة (غير مؤكد).</li>` +
    `<li><b>A4:</b> المتوسط اليومي = إجمالي السجلات ÷ الأيام المميزة الفعلية في الفترة. مع فلتر فرع/موظف يبقى المقسوم عليه أيام الفترة كلها.</li>` +
    `<li><b>A5:</b> كل صف = متابعة واحدة. صفوف بلا تاريخ: ${N(q.ops.noDate)} (تسليم/إلغاء)، ${N(q.unc.noDate)} (لم يتم التأكيد). لم يتم التأكيد: مراجعة فارغة ${N(q.unc.reviewBlank)}، قيمة أخرى ${N(q.unc.reviewOther)}.</li>` +

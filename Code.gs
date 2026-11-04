@@ -26,13 +26,15 @@ var CFG = {
   },
   UNCONF_COLS: {
     date: ['تاريخ السحب'], awb: ['رقم البوليصة'], branch: ['فرع'], emp: ['اسم الموظف'],
-    status: ['حالة الشحنة سيستم'], review: ['المراجعه'], group: ['ابلاغ على جروب'], month: ['month']
+    status: ['حالة الشحنة سيستم'], pulled: ['حالة الشحنة تم سحبها'], review: ['المراجعه'], group: ['ابلاغ على جروب'], month: ['month']
   },
   // ---------- افتراضات غير مؤكدة (راجعها) ----------
   // A1: الإلغاءات = تصنيف يحتوي "الغاء"، مشاكل التسليم = تصنيف يحتوي "تسليم"
   CANCEL_CLASS_RE: /الغاء/, DELIVERY_CLASS_RE: /تسليم/,
   // A2: FAKE في الإلغاءات = ظهور الكلمة في (نتيجة التحقيق / نوع الحل / ملاحظات / حاله الشحنه)
-  FAKE_RE: /fake|فيك|فايك/
+  FAKE_RE: /fake|فيك|فايك/,
+  // A6: «جاهز للاستلام اليوم أو غدا» = ظهور العبارة في عمود «نتيجة التحقيق» (بعد توحيد الهمزات والتشكيل)
+  SOON_RE: /جاهز للاستلام\s*اليوم\s*او\s*غد/
 };
 
 /* ======================= دوال نقية (قابلة للاختبار خارج Apps Script) ======================= */
@@ -84,7 +86,7 @@ function aggregateOps_(values, fmtDate) {
   if (need.length || (f.idx.month == null && f.idx.date == null))
     throw new Error('Delivery sheet: missing columns -> ' + f.missing.join(', '));
   var c = f.idx, facts = {}, days = {}, uniq = {}, monthRange = {}, otherCls = {};
-  var q = { rows: 0, blankRows: 0, unclassified: 0, otherClass: 0, finalOther: 0, noDate: 0, roundFilled: 0, noBranch: 0, noEmp: 0 };
+  var q = { rows: 0, blankRows: 0, unclassified: 0, otherClass: 0, finalOther: 0, noDate: 0, roundFilled: 0, noBranch: 0, noEmp: 0, soonCol: c.inv != null, soon: 0 };
   for (var r = 1; r < values.length; r++) {
     var row = values[r];
     var branch = clean_(row[c.branch]), emp = clean_(row[c.emp]), clsRaw = clean_(row[c.cls]);
@@ -108,15 +110,17 @@ function aggregateOps_(values, fmtDate) {
     if (rnd) q.roundFilled++;
     var hay = [c.inv, c.solve, c.note, c.status].map(function (i) { return i != null ? normText_(row[i]) : ''; }).join(' | ');
     var fake = CFG.FAKE_RE.test(hay) ? 1 : 0;
+    var soon = (c.inv != null && CFG.SOON_RE.test(normText_(row[c.inv]))) ? 1 : 0;
+    q.soon += soon;
     var cr = (fake && c.courier != null) ? clean_(row[c.courier]) : '';
-    var key = [m, sec, branch || 'غير محدد بالمصدر', emp || 'غير محدد بالمصدر', rnd, fcode, sol, ready, fake, cr].join('\u0001');
+    var key = [m, sec, branch || 'غير محدد بالمصدر', emp || 'غير محدد بالمصدر', rnd, fcode, sol, ready, fake, cr, soon].join('\u0001');
     bump_(facts, key, 1);
     var sk = sec + '|' + m;
     if (date) addSet_(days, sk, date);
     if (awb) addSet_(uniq, sk, awb);
     trackMonth_(monthRange, m, date);
   }
-  var out = Object.keys(facts).map(function (k) { var p = k.split('\u0001'); return [p[0], p[1], p[2], p[3], p[4], p[5], p[6], +p[7], +p[8], p[9], facts[k]]; });
+  var out = Object.keys(facts).map(function (k) { var p = k.split('\u0001'); return [p[0], p[1], p[2], p[3], p[4], p[5], p[6], +p[7], +p[8], p[9], +p[10], facts[k]]; });
   var dayCnt = {}, uniqCnt = {};
   Object.keys(days).forEach(function (k) { dayCnt[k] = Object.keys(days[k]).length; });
   Object.keys(uniq).forEach(function (k) { uniqCnt[k] = Object.keys(uniq[k]).length; });
@@ -130,7 +134,7 @@ function aggregateUnconfirmed_(values, fmtDate) {
   if (need.length || (f.idx.month == null && f.idx.date == null))
     throw new Error('Unconfirmed sheet: missing columns -> ' + f.missing.join(', '));
   var c = f.idx, facts = {}, days = {}, uniq = {}, monthRange = {};
-  var q = { rows: 0, blankRows: 0, reviewOther: 0, reviewBlank: 0, noDate: 0 };
+  var q = { rows: 0, blankRows: 0, reviewOther: 0, reviewBlank: 0, noDate: 0, pulledCol: c.pulled != null };
   for (var r = 1; r < values.length; r++) {
     var row = values[r];
     var branch = clean_(row[c.branch]), st = clean_(row[c.status]);
@@ -144,15 +148,16 @@ function aggregateUnconfirmed_(values, fmtDate) {
     if (rv === true) rev = 'TRUE'; else if (rv === false) rev = 'FALSE';
     else { var t = clean_(rv).toUpperCase(); rev = t === 'TRUE' || t === 'FAKE' ? t : (t ? 'OTHER' : 'BLANK'); }
     if (rev === 'OTHER') q.reviewOther++; if (rev === 'BLANK') q.reviewBlank++;
+    var stp = c.pulled != null ? clean_(row[c.pulled]) : '';
     var grp = c.group != null ? truthy_(row[c.group]) : 0;
     var emp = c.emp != null ? clean_(row[c.emp]) : '';
-    var key = [m, branch || 'غير محدد بالمصدر', emp || 'غير محدد بالمصدر', st || 'غير محدد بالمصدر', rev, grp].join('\u0001');
+    var key = [m, branch || 'غير محدد بالمصدر', emp || 'غير محدد بالمصدر', st || 'غير محدد بالمصدر', stp || 'غير محدد بالمصدر', rev, grp].join('\u0001');
     bump_(facts, key, 1);
     if (date) addSet_(days, m, date);
     if (awb) addSet_(uniq, m, awb);
     trackMonth_(monthRange, m, date);
   }
-  var out = Object.keys(facts).map(function (k) { var p = k.split('\u0001'); return [p[0], p[1], p[2], p[3], p[4], +p[5], facts[k]]; });
+  var out = Object.keys(facts).map(function (k) { var p = k.split('\u0001'); return [p[0], p[1], p[2], p[3], p[4], p[5], +p[6], facts[k]]; });
   var dayCnt = {}, uniqCnt = {};
   Object.keys(days).forEach(function (k) { dayCnt[k] = Object.keys(days[k]).length; });
   Object.keys(uniq).forEach(function (k) { uniqCnt[k] = Object.keys(uniq[k]).length; });
@@ -200,16 +205,16 @@ function buildSnapshotObject_(sheetValues, fmtDate, nowIso) {
   return {
     version: CFG.VERSION, generatedAt: nowIso,
     months: monthList,
-    opsCols: ['m', 'sec', 'br', 'emp', 'rnd', 'fin', 'sol', 'ready', 'fake', 'cr', 'n'],
+    opsCols: ['m', 'sec', 'br', 'emp', 'rnd', 'fin', 'sol', 'ready', 'fake', 'cr', 'soon', 'n'],
     ops: ops.facts,
-    uncCols: ['m', 'br', 'emp', 'st', 'rev', 'grp', 'n'],
+    uncCols: ['m', 'br', 'emp', 'st', 'stp', 'rev', 'grp', 'n'],
     unc: unc.facts,
     days: { ops: ops.days, unc: unc.days },
     uniq: { ops: ops.uniq, unc: unc.uniq },
     rounds: rounds,
     quality: { ops: ops.quality, unc: unc.quality, otherClasses: ops.otherClasses },
     assumptions: {
-      cancelClassRe: String(CFG.CANCEL_CLASS_RE), deliveryClassRe: String(CFG.DELIVERY_CLASS_RE), fakeRe: String(CFG.FAKE_RE)
+      cancelClassRe: String(CFG.CANCEL_CLASS_RE), deliveryClassRe: String(CFG.DELIVERY_CLASS_RE), fakeRe: String(CFG.FAKE_RE), soonRe: String(CFG.SOON_RE)
     }
   };
 }
